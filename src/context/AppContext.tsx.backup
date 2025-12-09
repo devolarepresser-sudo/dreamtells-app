@@ -1,0 +1,232 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, DreamEntry, Language, Plan } from '../types';
+import { storageService } from '../services/storageService'; // Keeping for language pref only
+import { authService } from '../services/authService';
+import { dreamService } from '../services/dreamService';
+import { auth } from '../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import pt from '../locales/pt.json';
+import es from '../locales/es.json';
+import en from '../locales/en.json';
+
+const locales = { pt, es, en };
+
+interface DailyMessageData {
+    date: string;
+    message: string;
+}
+
+interface AppContextType {
+    language: Language;
+    setLanguage: (lang: Language) => void;
+    user: User | null;
+    login: (email: string, name: string) => Promise<void>;
+    register: (email: string, password: string, name: string) => Promise<void>;
+    logout: () => void;
+    dreams: DreamEntry[];
+    addDream: (text: string, result: any, source: 'text' | 'audio') => Promise<string>;
+    toggleFavorite: (id: string) => void;
+    deleteDream: (id: string) => void;
+    t: (key: keyof typeof pt) => string;
+    upgradeToPremium: () => void;
+    dailyMessage: DailyMessageData | null;
+    setDailyMessage: (msg: string) => void;
+    isLoading: boolean;
+
+    // Premium Functions
+    canUsePremium: () => boolean;
+    activatePremium: () => Promise<void>;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const AppProvider = ({ children }: { children: ReactNode }) => {
+    const [language, setLanguageState] = useState<Language>('pt');
+    const [user, setUser] = useState<User | null>(null);
+    const [dreams, setDreams] = useState<DreamEntry[]>([]);
+    const [dailyMessage, setDailyMessageState] = useState<DailyMessageData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Initialize
+    useEffect(() => {
+        const storedLang = storageService.getLanguage() as Language;
+        if (storedLang) setLanguageState(storedLang);
+
+        const storedMsg = localStorage.getItem('dreamtells_daily_msg');
+        if (storedMsg) setDailyMessageState(JSON.parse(storedMsg));
+
+        // Firebase Auth Listener
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // User is signed in, fetch data
+                const userData = await authService.getUserData(firebaseUser.uid);
+                if (userData) {
+                    // Check daily limit reset
+                    const today = new Date().toISOString().split('T')[0];
+                    if (userData.lastDreamDate !== today) {
+                        userData.dreamsTodayCount = 0;
+                        userData.lastDreamDate = today;
+                        await authService.updateUser(userData);
+                    }
+
+                    // Check trial expiration and update if needed
+                    if (userData.trialEnd && userData.isTrialActive) {
+                        const now = new Date();
+                        const trialEndDate = new Date(userData.trialEnd);
+                        if (now > trialEndDate) {
+                            userData.isTrialActive = false;
+                            userData.isPremium = userData.plan === 'premium' || userData.plan === 'master';
+                            await authService.updateUser(userData);
+                        }
+                    }
+
+                    setUser(userData);
+
+                    // Fetch dreams
+                    const userDreams = await dreamService.getUserDreams(userData.id);
+                    setDreams(userDreams);
+                }
+            } else {
+                // User is signed out
+                setUser(null);
+                setDreams([]);
+            }
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const setLanguage = (lang: Language) => {
+        setLanguageState(lang);
+        storageService.setLanguage(lang);
+    };
+
+    const login = async (email: string, password: string) => {
+        await authService.login(email, password);
+    };
+
+    const register = async (email: string, password: string, name: string) => {
+        await authService.register(email, password, name);
+    };
+
+    const logout = async () => {
+        await authService.logout();
+    };
+
+    const upgradeToPremium = async () => {
+        if (user) {
+            const updatedUser = { ...user, plan: 'premium' as Plan };
+            setUser(updatedUser);
+            await authService.updateUser(updatedUser);
+        }
+    };
+
+};
+
+const addDream = async (text: string, result: any, source: 'text' | 'audio') => {
+    if (!user) throw new Error("User not logged in");
+
+    const newDream: Omit<DreamEntry, 'id'> = {
+        userId: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        text,
+        source,
+        language,
+        isFavorite: false,
+        // Structured Data
+        dreamTitle: result.dreamTitle,
+        interpretationMain: result.interpretationMain,
+        symbols: result.symbols,
+        emotions: result.emotions,
+        lifeAreas: result.lifeAreas,
+        advice: result.advice,
+        tags: result.tags,
+        isPremiumAnalysis: user.plan === 'premium' || user.plan === 'master',
+        // Legacy
+        interpretation: result.interpretationMain
+    };
+
+    const id = await dreamService.addDream(newDream);
+    const savedDream = { ...newDream, id } as DreamEntry;
+    setDreams(prev => [savedDream, ...prev]);
+
+    // Update usage count only
+    const updatedUser = {
+        ...user,
+        usage: {
+            ...user.usage,
+            interpretationsCount: user.usage.interpretationsCount + 1
+        }
+    };
+    setUser(updatedUser);
+    await authService.updateUser(updatedUser);
+
+    return id;
+};
+
+const toggleFavorite = async (id: string) => {
+    const dream = dreams.find(d => d.id === id);
+    if (dream) {
+        const updated = { ...dream, isFavorite: !dream.isFavorite };
+        setDreams(prev => prev.map(d => d.id === id ? updated : d));
+        await dreamService.updateDream(updated);
+    }
+};
+
+const deleteDream = async (id: string) => {
+    setDreams(prev => prev.filter(d => d.id !== id));
+    await dreamService.deleteDream(id);
+};
+
+const setDailyMessage = (msg: string) => {
+    const newData = { date: new Date().toDateString(), message: msg };
+    setDailyMessageState(newData);
+    localStorage.setItem('dreamtells_daily_msg', JSON.stringify(newData));
+};
+
+const t = (key: keyof typeof pt): string => {
+    const locale = locales[language];
+    return (locale as any)[key] || key;
+};
+
+// Trial Premium Functions
+const canUsePremium = () => {
+    if (!user) return false;
+    return user.isPremium || user.isTrialActive;
+};
+
+const activatePremium = async () => {
+    if (!user) return;
+
+    const updatedUser = {
+        ...user,
+        plan: 'premium' as Plan,
+        isPremium: true,
+        isTrialActive: false
+    };
+
+    setUser(updatedUser);
+    await authService.updateUser(updatedUser);
+};
+
+return (
+    <AppContext.Provider value={{
+        language, setLanguage,
+        user, login, register, logout,
+        dreams, addDream, toggleFavorite, deleteDream,
+        t, upgradeToPremium, canInterpret, remainingFree,
+        dailyMessage, setDailyMessage, isLoading,
+        canUsePremium, activatePremium
+    }}>
+        {children}
+    </AppContext.Provider>
+);
+};
+
+export const useApp = () => {
+    const context = useContext(AppContext);
+    if (!context) throw new Error('useApp must be used within an AppProvider');
+    return context;
+};

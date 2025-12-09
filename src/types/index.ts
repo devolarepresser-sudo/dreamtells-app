@@ -1,0 +1,85 @@
+export type Language = 'pt' | 'es' | 'en';
+export type Plan = 'free' | 'premium' | 'master';
+
+export interface UserPreferences {
+    language: Language;
+    showQuotes: boolean;
+}
+
+export interface UserUsage {
+    interpretationsCount: number;
+}
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    preferences: UserPreferences;
+    plan: Plan;
+    usage: UserUsage;
+    dreamsTodayCount: number;
+    lastDreamDate: string;
+
+    // Trial Premium Fields
+    trialStart: string | null;
+    trialEnd: string | null;
+    isTrialActive: boolean;
+    isPremium: boolean;
+}
+
+export interface SymbolDetail {
+    name: string;
+    meaning: string;
+}
+
+export interface DreamEntry {
+    id: string;
+    userId: string;
+    createdAt: string;
+    updatedAt: string;
+    text: string;
+    source: 'text' | 'audio';
+
+    // Structured Interpretation Data
+    dreamTitle: string;
+    interpretationMain: string;
+    symbols: SymbolDetail[];
+    emotions: string[];
+    lifeAreas: string[];
+    advice: string;
+    isPremiumAnalysis: boolean;
+    tags: string[];
+
+    // User Interaction
+    isFavorite: boolean;
+    feedback?: 'like' | 'dislike' | null;
+
+    // Legacy support (optional, can be removed if we migrate all data)
+    interpretation?: string;
+    language: Language;
+}
+
+export interface SymbolEntry {
+    name: string;
+    meaning: string;
+}
+export interface EmotionalAnalysis {
+    id?: string;
+    title: string;
+    description: string;
+    insights?: string[];
+    emotions?: string[];
+    intensity?: number;
+    createdAt?: number;
+}
+
+export interface InterpretationResult {
+    dreamTitle: string;
+    interpretationMain: string;
+    symbols: SymbolDetail[];
+    emotions: string[];
+    lifeAreas: string[];
+    advice: string;
+    tags: string[];
+    language?: Language;
+}
