@@ -1,4 +1,5 @@
 import React from 'react';
+import { Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Layout from '../components/Layout';
@@ -20,11 +21,18 @@ const LanguageSelect: React.FC = () => {
     const languages: { code: Language; label: string }[] = [
         { code: 'pt', label: 'Português' },
         { code: 'es', label: 'Español' },
-        { code: 'en', label: 'English' }
+        { code: 'en', label: 'English' },
+        { code: 'fr', label: 'Français' },
+        { code: 'it', label: 'Italiano' },
+        { code: 'de', label: 'Deutsch' }
     ];
 
     return (
-        <Layout title={t('language_select_title')} showBack>
+        <Layout
+            title={t('language_select_title')}
+            showBack
+            icon={<Globe size={18} color="#F9FAFB" />}
+        >
             <div
                 style={{
                     minHeight: '100vh',

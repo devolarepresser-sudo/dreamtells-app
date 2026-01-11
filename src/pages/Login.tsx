@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Layout from '../components/Layout';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Loader } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../services/authService';
 
 const Login: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
+    const [showPassword, setShowPassword] = useState(false);
 
     // Começam sempre vazios
     const [email, setEmail] = useState('');
@@ -77,6 +78,27 @@ const Login: React.FC = () => {
         setName('Presser Dev');
     };
 
+    const handleForgotPassword = async () => {
+        if (!email) {
+            alert('Por favor, digite seu email para recuperar a senha.');
+            return;
+        }
+        try {
+            setLoading(true);
+            await authService.resetPassword(email.trim());
+            alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        } catch (error: any) {
+            console.error('Erro ao enviar email de recuperação:', error);
+            if (error.code === 'auth/user-not-found') {
+                alert('Usuário não encontrado.');
+            } else {
+                alert('Erro ao enviar email. Verifique o endereço digitado.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Botão de Google com login real
     const handleGoogleLogin = async () => {
         setLoading(true);
@@ -84,20 +106,29 @@ const Login: React.FC = () => {
             await authService.loginWithGoogle();
         } catch (error: any) {
             console.error('Login com Google falhou:', error);
-            alert('Erro ao entrar com Google. Tente novamente.');
+            if (error?.message?.includes('offline') || error?.code === 'unavailable') {
+                alert('Aviso: Você está offline ou sem conexão com o banco de dados. O login ocorreu localmente.');
+            } else {
+                alert('Erro ao entrar com Google. Tente novamente.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Layout title={isLogin ? t('login_title') : t('create_account_title')}>
+        <Layout
+            title={isLogin ? t('login_title') : t('create_account_title')}
+            icon={<User size={18} color="#F9FAFB" />}
+            showMenu={false}
+        >
             <div
                 style={{
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'center',
+                    alignItems: 'center', // Adicionado para garantir centralização horizontal
                     padding: '24px 0',
                 }}
             >
@@ -106,6 +137,7 @@ const Login: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     style={{
+                        width: '100%', // Adicionado para garantir centralização em mobile
                         maxWidth: 420,
                         margin: '0 auto',
                         padding: '24px 20px 28px',
@@ -233,7 +265,7 @@ const Login: React.FC = () => {
                         >
                             <Lock size={18} color="rgba(148,163,184,0.9)" />
                             <input
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 placeholder={t('password_placeholder')}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -248,6 +280,24 @@ const Login: React.FC = () => {
                                     flex: 1,
                                 }}
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    padding: 4,
+                                }}
+                            >
+                                {showPassword ? (
+                                    <EyeOff size={18} color="rgba(148,163,184,0.9)" />
+                                ) : (
+                                    <Eye size={18} color="rgba(148,163,184,0.9)" />
+                                )}
+                            </button>
                         </div>
 
                         <button
@@ -281,6 +331,26 @@ const Login: React.FC = () => {
                                 </>
                             )}
                         </button>
+
+                        {isLogin && (
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                disabled={loading}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'rgba(255,255,255,0.6)',
+                                    fontSize: '0.85rem',
+                                    marginTop: 4,
+                                    cursor: 'pointer',
+                                    alignSelf: 'center',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Esqueci minha senha
+                            </button>
+                        )}
                     </form>
 
                     {/* BOTÃO LOGIN COM GOOGLE */}
@@ -326,41 +396,41 @@ const Login: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* AÇÕES AUXILIARES */}
-                    <div style={{ marginTop: 14, textAlign: 'center' }}>
+                    <div style={{ marginTop: 10, textAlign: 'center' }}>
                         <button
-                            onClick={fillDevCredentials}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'rgba(255,255,255,0.8)',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                textDecoration: 'underline',
-                                marginBottom: 6,
-                            }}
+                            onClick={() => setIsLogin(!isLogin)}
                             type="button"
+                            style={{
+                                background: 'rgba(255,255,255,0.10)',
+                                border: '1px solid rgba(255,255,255,0.18)',
+                                color: '#ffffff',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '0.95rem',
+                                padding: '10px 16px',
+                                borderRadius: 999,
+                                boxShadow: '0 10px 24px rgba(0,0,0,0.25)',
+                                letterSpacing: '0.01em',
+                            }}
                         >
-                            Usar credenciais de desenvolvedor
+                            {isLogin ? (
+                                <>
+                                    <span style={{ opacity: 0.8, fontWeight: 600 }}>Não tem conta? </span>
+                                    <span style={{ textDecoration: 'underline', textUnderlineOffset: 4 }}>
+                                        Crie uma
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span style={{ opacity: 0.8, fontWeight: 600 }}>Já tem conta? </span>
+                                    <span style={{ textDecoration: 'underline', textUnderlineOffset: 4 }}>
+                                        Entrar
+                                    </span>
+                                </>
+                            )}
                         </button>
                     </div>
 
-                    <div style={{ marginTop: 4, textAlign: 'center' }}>
-                        <button
-                            onClick={() => setIsLogin(!isLogin)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--color-primary)',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                            }}
-                            type="button"
-                        >
-                            {isLogin ? t('no_account_link') : t('have_account_link')}
-                        </button>
-                    </div>
                 </motion.div>
 
                 <style>{`

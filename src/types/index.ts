@@ -1,4 +1,4 @@
-export type Language = 'pt' | 'es' | 'en';
+export type Language = 'pt' | 'es' | 'en' | 'fr' | 'it' | 'de';
 export type Plan = 'free' | 'premium' | 'master';
 
 export interface UserPreferences {
@@ -55,8 +55,25 @@ export interface DreamEntry {
     feedback?: 'like' | 'dislike' | null;
 
     // Legacy support (optional, can be removed if we migrate all data)
+    // Legacy support (optional, can be removed if we migrate all data)
     interpretation?: string;
     language: Language;
+
+    // Deep Analysis (New Module)
+    deepAnalysis?: DeepAnalysisResult;
+}
+
+export interface DeepInsight {
+    title: string;
+    content: string;
+}
+
+export interface DeepAnalysisResult {
+    deepInsights: DeepInsight[];
+    patterns: string[];
+    finalIntegration: string;
+    userReflections?: Record<number, string>;
+    createdAt?: string;
 }
 
 export interface SymbolEntry {

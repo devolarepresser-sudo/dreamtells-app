@@ -4,12 +4,11 @@ import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import {
     Home,
-    PenTool,
     Mic,
     BookOpen,
     User,
     Info,
-    BarChart2,
+    Activity,
     Book,
     Crown,
     Lock,
@@ -30,18 +29,20 @@ const Menu: React.FC = () => {
     const hasAccess = canUsePremium();
 
     const menuItems = [
-        { icon: Home, label: t('menu_home'), path: '/home' },
-        { icon: PenTool, label: t('action_write'), path: '/write' },
-        { icon: Mic, label: t('action_record'), path: '/record' },
-        { icon: Sparkles, label: t('menu_interpretation') || 'Interpretação', path: '/interpretation' },
-        { icon: BookOpen, label: t('action_history'), path: '/history' },
-        // { icon: Heart, label: t('menu_life_context'), path: '/life-context', premium: true },
-        // { icon: Sun, label: t('menu_daily_message'), path: '/daily-message', premium: true },
-        { icon: BarChart2, label: t('menu_stats'), path: '/stats', premium: true },
-        { icon: Book, label: t('menu_symbols'), path: '/symbols', premium: true },
-        { icon: Crown, label: t('menu_premium'), path: '/premium', color: '#F1C40F' },
-        { icon: User, label: t('menu_profile'), path: '/profile' },
-        { icon: Info, label: t('settings_about'), path: '/about' },
+        { icon: Home, label: t('menu_home'), path: '/home', tileClass: 'menuIconTile-home' },
+        { icon: Mic, label: t('action_record'), path: '/record', tileClass: 'menuIconTile-audio' },
+        { icon: Sparkles, label: t('menu_interpretation') || 'Interpretação', path: '/interpretation', tileClass: 'menuIconTile-interpretation' },
+        { icon: BookOpen, label: t('action_history'), path: '/history', tileClass: 'menuIconTile-write' },
+
+        // Premium features (unlocked)
+        { icon: Activity, label: t('menu_stats'), path: '/stats', tileClass: 'menuIconTile-insights' },
+        { icon: Book, label: t('menu_symbols'), path: '/symbols', tileClass: 'menuIconTile-symbols' },
+
+        // Premium page (always visible)
+        { icon: Crown, label: t('menu_premium'), path: '/premium', tileClass: 'menuIconTile-premium', isPremiumTile: true },
+
+        { icon: User, label: t('menu_profile'), path: '/profile', tileClass: 'menuIconTile-profile' },
+        { icon: Info, label: t('settings_about'), path: '/about', tileClass: 'menuIconTile-about' },
     ];
 
     const handleItemClick = (e: React.MouseEvent, item: any) => {
@@ -53,19 +54,90 @@ const Menu: React.FC = () => {
 
     return (
         <Layout
-            title={t('menu_title')}           // texto muda conforme idioma
-            showBack={true}                   // voltar para tela anterior
-            showMenu={false}                  // já estamos no menu, não precisa botão de menu
-            icon={<Sparkles size={18} color="#F9FAFB" />} // ícone padrão do menu
+            title={t('menu_title')}
+            showBack={true}
+            showMenu={false}
+            icon={<Sparkles size={18} color="#F9FAFB" />}
+            className="no-global-bg"
         >
+            {/* CSS local pra garantir contraste e cores sem depender do resto */}
+            <style>
+                {`
+          .menuIconTile{
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          /* Ícones */
+          .menuIconDefault{
+            color: #FFFFFF;
+            stroke-width: 2;
+          }
+
+          /* Ícone em tile premium (dourado) precisa ser escuro pra aparecer */
+          .menuIconPremium{
+            color: #1F2937;
+            stroke-width: 2.3;
+          }
+
+          .menuIconLock{
+            color: #CBD5E0;
+            opacity: 0.9;
+            stroke-width: 2;
+          }
+
+          /* Tiles com identidade própria */
+          .menuIconTile-home{
+            background: linear-gradient(135deg, #22C55E, #86EFAC);
+          }
+
+          .menuIconTile-audio{
+            background: linear-gradient(135deg, #06B6D4, #67E8F9);
+          }
+
+          .menuIconTile-interpretation{
+            background: linear-gradient(135deg, #8B5CF6, #C4B5FD);
+          }
+
+          .menuIconTile-write{
+            background: linear-gradient(135deg, #F97316, #FDBA74);
+          }
+
+          .menuIconTile-insights{
+            background: linear-gradient(135deg, #3B82F6, #60A5FA);
+          }
+
+          .menuIconTile-symbols{
+            background: linear-gradient(135deg, #7C3AED, #A78BFA);
+          }
+
+          .menuIconTile-premium{
+            background: linear-gradient(135deg, #FACC15, #F59E0B);
+            box-shadow: 0 6px 18px rgba(250, 204, 21, 0.55);
+          }
+
+          .menuIconTile-profile{
+            background: linear-gradient(135deg, #64748B, #94A3B8);
+          }
+
+          .menuIconTile-about{
+            background: linear-gradient(135deg, #0EA5E9, #7DD3FC);
+          }
+        `}
+            </style>
+
             <div
                 style={{
-                    minHeight: '100vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '12px 16px 40px 16px',
-                    background:
-                        'radial-gradient(circle at top, #020617 0%, #020617 40%, #0B1026 100%)',
+                    width: '100%',
+                    maxWidth: 480,
+                    margin: '0 auto',
+                    marginTop: 8,
+                    background: 'transparent',   // ✅ garante que não existe “placa”
                 }}
             >
                 {/* LISTA DE ITENS DE MENU */}
@@ -80,6 +152,7 @@ const Menu: React.FC = () => {
                     <div style={{ display: 'grid', gap: '12px' }}>
                         {menuItems.map((item, index) => {
                             const isLocked = item.premium && !hasAccess;
+                            const isPremiumTile = !!item.isPremiumTile;
 
                             return (
                                 <motion.div
@@ -90,56 +163,25 @@ const Menu: React.FC = () => {
                                 >
                                     <Link
                                         to={isLocked ? '#' : item.path}
+                                        className="menuButtonPremium"
                                         onClick={(e) => handleItemClick(e, item)}
                                         style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            padding: '14px 16px',
-                                            borderRadius: 18,
                                             textDecoration: 'none',
-                                            background: isLocked
-                                                ? 'linear-gradient(135deg, rgba(30,64,175,0.30), rgba(129,140,248,0.28))'
-                                                : 'linear-gradient(135deg,#1E3A8A,#3B82F6)',
-                                            border: isLocked
-                                                ? '1px solid rgba(148,163,184,0.8)'
-                                                : '1px solid rgba(191,219,254,0.95)',
-                                            color: '#E5E7EB',
-                                            boxShadow:
-                                                '0 16px 34px rgba(15,23,42,0.7)',
                                             opacity: isLocked ? 0.85 : 1,
-                                            backdropFilter: 'blur(12px)',
                                         }}
                                     >
-                                        <div
-                                            style={{
-                                                background: isLocked
-                                                    ? 'radial-gradient(circle, rgba(148,163,184,0.35), rgba(15,23,42,0.9))'
-                                                    : 'radial-gradient(circle, rgba(255,255,255,0.26), rgba(37,99,235,0.22))',
-                                                padding: 10,
-                                                borderRadius: 14,
-                                                marginRight: 16,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
+                                        <div className={`menuIconTile ${item.tileClass}`} style={{ marginRight: 16 }}>
                                             {isLocked ? (
-                                                <Lock size={20} color="#CBD5E0" />
+                                                <Lock size={20} className="menuIconLock" />
                                             ) : (
                                                 <item.icon
                                                     size={20}
-                                                    color={item.color || '#E5E7EB'}
+                                                    className={isPremiumTile ? 'menuIconPremium' : 'menuIconDefault'}
                                                 />
                                             )}
                                         </div>
 
-                                        <span
-                                            style={{
-                                                fontWeight: 600,
-                                                flex: 1,
-                                                fontSize: '0.95rem',
-                                            }}
-                                        >
+                                        <span className="menuButtonText" style={{ flex: 1 }}>
                                             {item.label}
                                         </span>
 
@@ -181,7 +223,9 @@ const Menu: React.FC = () => {
                                     '0 18px 40px rgba(248,113,113,0.5)',
                             }}
                         >
-                            <LogOut size={20} style={{ marginRight: 12 }} />
+                            <div className="menuIconTile menuIconTile-profile" style={{ marginRight: 12 }}>
+                                <LogOut size={20} className="menuIconDefault" />
+                            </div>
                             {t('menu_logout')}
                         </motion.button>
                     )}

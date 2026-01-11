@@ -82,12 +82,16 @@ const Symbols: React.FC = () => {
     };
 
     return (
-        <Layout title={t('menu_symbols')} showBack>
+        <Layout
+            title={t('menu_symbols')}
+            showBack
+            icon={<Sparkles size={18} color="#F9FAFB" />}
+        >
             <div
                 style={{
                     flex: 1,
                     position: 'relative',
-                    padding: '16px 0 32px',
+                    padding: '8px 0 32px',
                 }}
             >
                 <div

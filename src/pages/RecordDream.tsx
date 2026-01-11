@@ -7,6 +7,9 @@ import { motion } from 'framer-motion';
 import { Mic, Send, Loader } from 'lucide-react';
 import { FREE_DEV_MODE } from '../config/featureFlags';
 
+import { Capacitor } from '@capacitor/core';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
+
 // Declaração Web Speech API
 declare global {
     interface Window {
@@ -15,35 +18,133 @@ declare global {
     }
 }
 
+const STOP_TIMEOUT_MS = 1200;
+
 const RecordDream: React.FC = () => {
+    // Refs para persistência (não quebra no re-render)
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const chunksRef = useRef<BlobPart[]>([]);
+
+    // Mantendo SpeechRecognition (Web)
+    const recognitionRef = useRef<any>(null);
+
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSpeechSupported, setIsSpeechSupported] = useState(true);
-    const [isStopping, setIsStopping] = useState(false);
+    // Controle interno para loading (evita travamento de botão)
+    const [isLoadingRecording, setIsLoadingRecording] = useState(false);
 
-    const recognitionRef = useRef<any>(null);
-    const { addDream, user } = useApp();
+    const { addDream, user, language } = useApp();
     const navigate = useNavigate();
 
-    // Inicializar SpeechRecognition (uma vez só)
+    // ✅ Buffers para NATIVE (Android/iOS)
+    const finalAccumRef = useRef('');     // texto “confirmado” acumulado
+    const partialRef = useRef('');        // preview do que está falando agora
+    const acceptingRef = useRef(false);   // bloqueia eventos atrasados após stop
+
+    // Anti duplo click/tap
+    const lastTapRef = useRef(0);
+
+    // Map simple language code to full locale for SpeechRecognition
+    const getSpeechLocale = (lang: string) => {
+        switch (lang) {
+            case 'en': return 'en-US';
+            case 'es': return 'es-ES';
+            case 'fr': return 'fr-FR';
+            case 'it': return 'it-IT';
+            case 'de': return 'de-DE';
+            case 'pt':
+            default: return 'pt-BR';
+        }
+    };
+
+    const normalize = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
+
+    // Escolhe o match “mais completo”
+    const pickBest = (matches: string[]) => {
+        if (!matches || matches.length === 0) return '';
+        return matches.reduce((a, b) => (b.length > a.length ? b : a), matches[0]);
+    };
+
+    const updateTextareaFromBuffers = () => {
+        const full = normalize(`${finalAccumRef.current} ${partialRef.current}`);
+        setTranscript(full);
+    };
+
+    const safeStopNativeSpeech = async () => {
+        try {
+            await Promise.race([
+                SpeechRecognition.stop(),
+                new Promise((resolve) => setTimeout(resolve, STOP_TIMEOUT_MS)),
+            ]);
+        } catch (e) {
+            console.warn('[RecordDream] SpeechRecognition.stop erro:', e);
+        }
+    };
+
+    // Inicializar SpeechRecognition (Setup)
     useEffect(() => {
-        const SpeechRecognition =
-            window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            setIsSpeechSupported(false);
+        const isNative = Capacitor.isNativePlatform();
+
+        // --- NATIVE (Android/iOS) ---
+        if (isNative) {
+            (async () => {
+                try { await SpeechRecognition.removeAllListeners(); } catch { }
+
+                // ✅ Preview (tempo real)
+                SpeechRecognition.addListener('partialResults', (data: any) => {
+                    if (!acceptingRef.current) return;
+
+                    const text = normalize(pickBest(data?.matches || []));
+                    if (!text) return;
+
+                    // NÃO sobrescreve o finalAccum: só preview
+                    partialRef.current = text;
+                    updateTextareaFromBuffers();
+                });
+
+                // ✅ Resultado final (mais estável que partial)
+                SpeechRecognition.addListener('result', (data: any) => {
+                    if (!acceptingRef.current) return;
+
+                    const text = normalize(pickBest(data?.matches || []));
+                    if (!text) return;
+
+                    const fa = normalize(finalAccumRef.current);
+
+                    // Regra robusta:
+                    // - se o texto novo já contém o acumulado, ele provavelmente é mais completo -> substitui finalAccum
+                    // - senão, concatena
+                    if (!fa) {
+                        finalAccumRef.current = text;
+                    } else if (text.includes(fa)) {
+                        finalAccumRef.current = text;
+                    } else if (!fa.endsWith(text)) {
+                        finalAccumRef.current = normalize(`${fa} ${text}`);
+                    }
+
+                    partialRef.current = '';
+                    updateTextareaFromBuffers();
+                });
+            })();
+
+            return () => {
+                acceptingRef.current = false;
+            };
+        }
+
+        // --- WEB (Browser) ---
+        const SpeechRecognitionWeb = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionWeb) {
+            console.warn('SpeechRecognition not supported in this browser.');
             return;
         }
 
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'pt-BR';
+        const recognition = new SpeechRecognitionWeb();
+        recognition.lang = getSpeechLocale(language);
         recognition.continuous = true;
         recognition.interimResults = true;
-
-        recognition.onstart = () => {
-            setIsRecording(true);
-            setIsStopping(false);
-        };
 
         recognition.onresult = (event: any) => {
             let finalTranscript = '';
@@ -52,130 +153,233 @@ const RecordDream: React.FC = () => {
                 if (r.isFinal) finalTranscript += r[0].transcript + ' ';
             }
             if (finalTranscript) {
-                setTranscript((prev) => prev + finalTranscript);
+                setTranscript((prev) => normalize(`${prev} ${finalTranscript}`));
             }
         };
 
         recognition.onerror = (event: any) => {
-            console.error('SpeechRecognition error:', event.error);
-            setIsRecording(false);
-            setIsStopping(false);
+            console.warn('SpeechRecognition error:', event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                setIsRecording(false);
+                setIsLoadingRecording(false);
+            }
         };
 
         recognition.onend = () => {
             setIsRecording(false);
-            setIsStopping(false);
+            setIsLoadingRecording(false);
         };
 
         recognitionRef.current = recognition;
+    }, [language]);
 
-        return () => {
-            try {
-                recognition.stop();
-            } catch (e) {
-                console.error(e);
-            }
-            setIsRecording(false);
-            setIsStopping(false);
-        };
-    }, []);
-
-    // INICIAR GRAVAÇÃO
-    const startRecording = () => {
-        if (!isSpeechSupported) {
-            alert('Seu navegador não suporta reconhecimento de voz.');
-            return;
-        }
-
-        if (!recognitionRef.current) {
-            alert('Reconhecimento de voz não pôde ser inicializado.');
-            return;
-        }
-
-        if (isRecording || isStopping) {
-            return;
-        }
-
-        setTranscript('');
-        setIsStopping(false);
-
+    // Lógica de Gravação
+    const startRecording = async () => {
+        setIsLoadingRecording(true);
         try {
-            recognitionRef.current.start();
-            // feedback visual imediato
+            const isNative = Capacitor.isNativePlatform();
+
+            finalAccumRef.current = '';
+            partialRef.current = '';
+            acceptingRef.current = true;
+            setTranscript('');
+
+            // ✅ 1) Áudio (MediaRecorder) - SOMENTE WEB
+            if (!isNative) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    streamRef.current = stream;
+                    const mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorderRef.current = mediaRecorder;
+                    chunksRef.current = [];
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) chunksRef.current.push(e.data);
+                    };
+                    mediaRecorder.start();
+                } catch (audioErr) {
+                    console.warn('MediaRecorder falhou, mas seguindo com transcrição:', audioErr);
+                }
+            }
+
+            // ✅ 2) Transcrição
+            if (isNative) {
+                const perm = await SpeechRecognition.requestPermissions();
+                if (perm.speechRecognition !== 'granted') {
+                    alert('Permissão de microfone negada para transcrição.');
+                    setIsLoadingRecording(false);
+                    acceptingRef.current = false;
+                    return;
+                }
+
+                // ✅ IMPORTANTE: capture erro do start (pra não falhar “mudo”)
+                try {
+                    await SpeechRecognition.start({
+                        language: getSpeechLocale(language),
+                        maxResults: 5,
+                        prompt: 'Fale seu sonho...',
+                        partialResults: true,
+                        popup: false,
+                    });
+                } catch (e) {
+                    console.warn('[RecordDream] SpeechRecognition.start erro:', e);
+                    alert('Falha ao iniciar transcrição no telefone.');
+                    acceptingRef.current = false;
+                    setIsLoadingRecording(false);
+                    return;
+                }
+            } else {
+                if (recognitionRef.current) {
+                    try { recognitionRef.current.start(); } catch (e) {
+                        console.warn('SpeechRecognition start error:', e);
+                    }
+                }
+            }
+
             setIsRecording(true);
-        } catch (err: any) {
-            console.error('Erro ao iniciar gravação:', err);
+        } catch (err) {
+            console.error('Error starting recording:', err);
+            alert('Não foi possível iniciar a gravação. Verifique suas permissões.');
             setIsRecording(false);
-            setIsStopping(false);
+            acceptingRef.current = false;
+        } finally {
+            setIsLoadingRecording(false);
         }
     };
 
-    // PARAR GRAVAÇÃO
-    const stopRecording = () => {
-        if (!recognitionRef.current) return;
-        if (!isRecording && !isStopping) return;
 
-        setIsStopping(true);
+    const stopRecording = async () => {
+        setIsLoadingRecording(true);
+
+        // ✅ trava updates atrasados e “congela” o texto completo
+        acceptingRef.current = false;
+        const frozen = normalize(`${finalAccumRef.current} ${partialRef.current}`) || normalize(transcript);
+        setTranscript(frozen);
+
+        // ✅ UI PARA AGORA (não espera plugin)
         setIsRecording(false);
 
         try {
-            recognitionRef.current.stop();
-        } catch (err: any) {
-            console.error('Erro ao parar gravação:', err);
-            setIsRecording(false);
-            setIsStopping(false);
+            const isNative = Capacitor.isNativePlatform();
+
+            // Stop Audio
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+            }
+
+            // Stop Transcription
+            if (isNative) {
+                // ✅ não deixa o stop travar o app
+                safeStopNativeSpeech();
+            } else {
+                if (recognitionRef.current) {
+                    try {
+                        recognitionRef.current.stop();
+                    } catch (e) {
+                        console.warn('SpeechRecognition stop error:', e);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error stopping recording:', err);
+        } finally {
+            setIsLoadingRecording(false);
         }
     };
 
-    const handleToggle = () => {
-        if (isRecording) stopRecording();
-        else startRecording();
+    const handleToggleRecording = async () => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 350) return; // anti duplo-toque
+        lastTapRef.current = now;
+
+        if (isLoadingRecording) return;
+
+        if (isRecording) {
+            await stopRecording();
+        } else {
+            await startRecording();
+        }
     };
 
-    // ENVIAR PARA ANÁLISE (igual lógica da WriteDream, mas com áudio)
     const handleAnalyze = async () => {
-        if (!transcript.trim()) return;
+        // ✅ manda pra IA o texto mais completo possível
+        const textToAnalyze = normalize(`${finalAccumRef.current} ${partialRef.current}`) || normalize(transcript);
+        if (!textToAnalyze) return;
+
+        if (!user && !FREE_DEV_MODE) {
+            navigate('/login');
+            return;
+        }
+
+        if (!aiService || typeof aiService.analyzeDream !== 'function') {
+            alert('Erro interno da IA. Tente novamente mais tarde.');
+            return;
+        }
+
+        setIsAnalyzing(true);
 
         try {
-            // Garantir login
-            if (!user && !FREE_DEV_MODE) {
-                navigate('/login');
-                return;
-            }
-
-            // Garantir IA configurada
-            if (!aiService || typeof aiService.analyzeDream !== 'function') {
-                alert('Erro interno da IA. Tente novamente mais tarde.');
-                return;
-            }
-
-            setIsAnalyzing(true);
-
-            // Interpretação
             const userId = user?.id || 'dev-guest';
-            const result = await aiService.analyzeDream(transcript, userId);
 
-            // Salvamento (tipo = 'audio')
-            const id = await addDream(transcript, result, 'audio');
+            // 1) IA SEMPRE roda primeiro - Passando o idioma atual
+            const result = await aiService.analyzeDream(textToAnalyze, userId, language);
 
-            // Mesmo comportamento da WriteDream: navegação SPA
-            navigate('/interpretation', { state: { dreamId: id } });
+            // 2) Tenta salvar no Firestore — mas não deixa erro travar a navegação
+            let id = 'temp-audio-' + Date.now();
+            try {
+                // @ts-ignore - Garantia runtime
+                if (addDream) {
+                    // Timeout de 2 segundos para o save
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Save Timeout')), 12000)
+                    );
+
+                    // Race: Salvar vs Timeout
+                    id = await Promise.race([
+                        addDream(textToAnalyze, result, 'audio'),
+                        timeoutPromise
+                    ]) as string;
+                }
+            } catch (saveErr) {
+                console.warn(
+                    '[RecordDream] Salvar sonho demorou demais ou falhou (Offline), seguindo para resultado:',
+                    saveErr
+                );
+                // Se der timeout, seguimos com o ID temporário gerado acima
+            }
+
+            // 3) SEMPRE navega para interpretação — com interpretação completa
+            console.log('[RecordDream] Navegando para interpretação:', id);
+            navigate('/interpretation', {
+                state: { dreamId: id, dream: { id, text: textToAnalyze, ...result } }
+            });
         } catch (err) {
             console.error(err);
-            alert('Erro ao interpretar o sonho. Tente novamente.');
+            alert(`Erro ao interpretar: ${err?.message || err}`);
+
         } finally {
             setIsAnalyzing(false);
         }
     };
 
     return (
-        <Layout title="Gravar Sonho" showBack>
+        <Layout
+            title={
+                <>
+                    Gravar ou<br />
+                    Escrever sonho
+                </>
+            }
+            multiline
+            showBack
+            icon={<Mic size={18} color="#F9FAFB" />}
+        >
             <div
                 style={{
                     minHeight: '100vh',
-                    padding: '18px 16px 32px',
-                    background:
-                        'radial-gradient(circle at top, #1E293B 0%, #0B1120 40%, #020617 100%)',
+                    background: 'transparent',
                     display: 'flex',
                     justifyContent: 'center',
                 }}
@@ -183,9 +387,9 @@ const RecordDream: React.FC = () => {
                 <div
                     style={{
                         width: '100%',
-                        maxWidth: 520,
+                        maxWidth: '100%',
                         background: 'linear-gradient(145deg,#0B1026,#111827)',
-                        padding: 24,
+                        padding: 20,
                         borderRadius: 24,
                         border: '1px solid rgba(148,163,184,0.35)',
                         boxShadow: '0 22px 60px rgba(15,23,42,0.9)',
@@ -257,10 +461,12 @@ const RecordDream: React.FC = () => {
                             }}
                         >
                             <button
-                                onClick={handleToggle}
+                                type="button"
+                                onClick={handleToggleRecording}
+                                disabled={isLoadingRecording}
                                 style={{
-                                    width: 120,
-                                    height: 120,
+                                    width: 60,
+                                    height: 60,
                                     borderRadius: '50%',
                                     background: isRecording
                                         ? 'linear-gradient(135deg,#F87171,#DC2626)'
@@ -269,12 +475,16 @@ const RecordDream: React.FC = () => {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    cursor: 'pointer',
+                                    cursor: isLoadingRecording ? 'wait' : 'pointer',
                                     transition: '0.15s ease-in-out',
                                     boxShadow: isRecording
                                         ? '0 12px 32px rgba(220,38,38,0.45)'
                                         : '0 12px 32px rgba(90,62,242,0.45)',
+                                    touchAction: 'manipulation',
+                                    WebkitTapHighlightColor: 'transparent',
                                 }}
+                                aria-pressed={isRecording}
+                                aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
                             >
                                 <Mic size={44} color="#FFF" />
                             </button>
@@ -290,9 +500,7 @@ const RecordDream: React.FC = () => {
                             fontSize: '1rem',
                         }}
                     >
-                        {isRecording
-                            ? 'Gravando... toque para parar'
-                            : 'Toque para iniciar gravação'}
+                        {isRecording ? 'Gravando... toque para parar' : 'Toque para iniciar gravação'}
                     </p>
 
                     {/* BOTÃO ENVIAR */}
@@ -317,18 +525,21 @@ const RecordDream: React.FC = () => {
                             justifyContent: 'center',
                             gap: 10,
                             boxShadow: '0 18px 42px rgba(90,62,242,0.7)',
-                            opacity:
-                                isAnalyzing || !transcript.trim() || isRecording ? 0.78 : 1,
+                            opacity: isAnalyzing || !transcript.trim() || isRecording ? 0.78 : 1,
                             cursor:
-                                isAnalyzing || !transcript.trim() || isRecording
-                                    ? 'not-allowed'
-                                    : 'pointer',
+                                isAnalyzing || !transcript.trim() || isRecording ? 'not-allowed' : 'pointer',
                         }}
                     >
                         {isAnalyzing ? (
                             <>
-                                <Loader size={20} className="animate-spin" />
-                                Interpretando seu sonho de áudio...
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                    <Loader size={20} />
+                                </motion.div>
+                                Interpretando...
                             </>
                         ) : (
                             <>
@@ -337,6 +548,28 @@ const RecordDream: React.FC = () => {
                             </>
                         )}
                     </button>
+
+                    {isAnalyzing && (
+                        <div
+                            style={{
+                                marginTop: 14,
+                                padding: '10px 14px',
+                                borderRadius: 16,
+                                background: 'rgba(30,41,59,0.7)',
+                                border: '1px solid rgba(148,163,184,0.55)',
+                                color: '#E2E8F0',
+                                fontSize: '0.82rem',
+                                lineHeight: 1.5,
+                                boxShadow: '0 10px 26px rgba(15,23,42,0.85)',
+                                backdropFilter: 'blur(6px)',
+                            }}
+                        >
+                            A interpretação do seu sonho de áudio está sendo processada.
+                            Dependendo da complexidade da experiência e dos símbolos que você
+                            descreveu, isso pode levar alguns segundos. Você pode aguardar
+                            aqui enquanto a análise é concluída.
+                        </div>
+                    )}
                 </div>
             </div>
         </Layout>

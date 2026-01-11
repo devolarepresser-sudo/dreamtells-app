@@ -1,13 +1,17 @@
 // src/pages/Interpretation.tsx
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { DreamEntry } from '../types';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type AnyObj = Record<string, any>;
+
+// Chave usada no localStorage para persistir o último sonho interpretado
+const LAST_INTERPRETATION_KEY = 'dreamtells_last_interpretation';
 
 interface InterpretationView {
     dreamTitle: string;
@@ -15,7 +19,13 @@ interface InterpretationView {
     advice: string;
     symbols: { name: string; meaning?: string }[];
     emotions: string[];
+
     lifeAreas: string[];
+    deepAnalysis?: {
+        deepInsights: { title: string; content: string }[];
+        patterns: string[];
+        finalIntegration: string;
+    };
 }
 
 // Verifica se um objeto "parece" um InterpretationResult
@@ -118,17 +128,13 @@ const buildInterpretationView = (dream?: DreamEntry): InterpretationView | null 
 
     const emotions = Array.isArray(node.emotions)
         ? node.emotions
-            .map((e: any) =>
-                typeof e === 'string' ? e.trim() : ''
-            )
+            .map((e: any) => (typeof e === 'string' ? e.trim() : ''))
             .filter((e: string) => e.length > 0)
         : [];
 
     const lifeAreas = Array.isArray(node.lifeAreas)
         ? node.lifeAreas
-            .map((a: any) =>
-                typeof a === 'string' ? a.trim() : ''
-            )
+            .map((a: any) => (typeof a === 'string' ? a.trim() : ''))
             .filter((a: string) => a.length > 0)
         : [];
 
@@ -143,24 +149,111 @@ const buildInterpretationView = (dream?: DreamEntry): InterpretationView | null 
         advice,
         symbols,
         emotions,
+
         lifeAreas,
+        deepAnalysis: dream.deepAnalysis,
     };
 };
 
-const Interpretation: React.FC = () => {
-    const { dreams, t } = useApp();
-    const navigate = useNavigate();
-    const location = useLocation() as { state?: { dreamId?: string } };
+// Animação de container (stagger) e items (fade/slide)
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.35, // Delay entre cada bloco para efeito "reading"
+            delayChildren: 0.1
+        }
+    }
+};
 
-    const dreamId = location.state?.dreamId;
-    const dream = dreams.find((d) => d.id === dreamId);
+const itemVariants = {
+    hidden: { opacity: 0, y: 30 }, // Começa um pouco mais abaixo
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+            type: "spring",
+            stiffness: 50,
+            damping: 15
+        }
+    }
+};
+
+const Interpretation: React.FC = () => {
+    const { dreams } = useApp();
+    const navigate = useNavigate();
+    const location = useLocation() as { state?: { dreamId?: string; dream?: DreamEntry } };
+
+    // Estado para guardar o sonho salvo do localStorage (fallback)
+    const [savedDream, setSavedDream] = useState<DreamEntry | undefined>(undefined);
+
+    const dreamFromState = location.state?.dream as DreamEntry | undefined;
+    const dreamId = dreamFromState?.id ?? location.state?.dreamId;
+
+    // Prioridade: state > dreams array > savedDream do localStorage
+    const dream = dreamFromState ?? dreams.find((d) => d.id === dreamId) ?? savedDream;
+
+    // Carregar do localStorage na montagem
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(LAST_INTERPRETATION_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored) as DreamEntry;
+                setSavedDream(parsed);
+            }
+        } catch {
+            // Se der erro no JSON, ignora
+        }
+    }, []);
+
+
+    // Salvar no localStorage quando tiver um sonho válido vindo do state ou array
+    useEffect(() => {
+        const currentDream = dreamFromState ?? dreams.find((d) => d.id === dreamId);
+        if (currentDream) {
+            try {
+                localStorage.setItem(LAST_INTERPRETATION_KEY, JSON.stringify(currentDream));
+                setSavedDream(currentDream);
+            } catch {
+                // Se der erro ao salvar, ignora
+            }
+        }
+    }, [dreamFromState, dreamId, dreams]);
 
     const view = useMemo(() => buildInterpretationView(dream), [dream]);
+
+    const handleShare = async () => {
+        if (!view || !dream) return;
+
+        const textToShare = `🌙 *DreamTells Sonho*\n\n"${dream.text}"\n\n✨ *Interpretação:*\n${view.main}\n\n💡 *Conselho:*\n${view.advice}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Meu Sonho - DreamTells',
+                    text: textToShare,
+                });
+            } catch (err) {
+                console.warn('Share canceled or failed:', err);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(textToShare);
+                alert('Conteúdo copiado para a área de transferência!');
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        }
+    };
 
     // Se não encontrar o sonho
     if (!dream) {
         return (
-            <Layout title={t('interpretation_title') || 'Interpretação'}>
+            <Layout
+                title="Interpretação do Sonho"
+                icon={<Sparkles size={18} color="#F9FAFB" />}
+            >
                 <div
                     style={{
                         padding: 24,
@@ -170,12 +263,13 @@ const Interpretation: React.FC = () => {
                         justifyContent: 'center',
                         alignItems: 'center',
                         textAlign: 'center',
+                        background: 'transparent',
                     }}
                 >
                     <p
                         style={{
                             marginBottom: 16,
-                            color: 'var(--color-text-secondary)',
+                            color: '#CBD5E1',
                         }}
                     >
                         Não foi possível encontrar este sonho.
@@ -206,32 +300,38 @@ const Interpretation: React.FC = () => {
     const interpretationExists = !!view;
 
     return (
-        <Layout title={t('interpretation_title') || 'Interpretação'}>
+        <Layout
+            title="Interpretação do Sonho"
+            icon={<Sparkles size={18} color="#F9FAFB" />}
+        >
             <div
                 style={{
                     minHeight: '100vh',
-                    padding: '18px 16px 32px',
+                    padding: '12px 6px 32px',
                     display: 'flex',
                     justifyContent: 'center',
-                    background:
-                        'radial-gradient(circle at top, #1E293B 0%, #0B1120 45%, #020617 100%)',
+                    alignItems: 'center', // Adicionado para garantir centralização vertical
+                    background: 'transparent',
                 }}
             >
-                <div
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={containerVariants}
                     style={{
                         width: '100%',
                         maxWidth: 600,
-                        background:
-                            'linear-gradient(135deg,#0B1026,#111827)',
+                        background: 'linear-gradient(135deg,#0B1026,#111827)',
                         borderRadius: 24,
                         padding: 24,
-                        boxShadow: '0 22px 60px rgba(15,23,42,0.95)',
+                        boxShadow: '0 20px 60px rgba(15,23,42,0.95)',
                         border: '1px solid rgba(148,163,184,0.7)',
                         backdropFilter: 'blur(16px)',
                     }}
                 >
                     {/* Cabeçalho */}
-                    <div
+                    <motion.div
+                        variants={itemVariants}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -263,7 +363,7 @@ const Interpretation: React.FC = () => {
                                         letterSpacing: '-0.03em',
                                     }}
                                 >
-                                    {t('interpretation_title') || 'Interpretação do sonho'}
+                                    Interpretação do Sonho
                                 </h2>
                                 <p
                                     style={{
@@ -289,10 +389,11 @@ const Interpretation: React.FC = () => {
                         >
                             Ver histórico
                         </button>
-                    </div>
+                    </motion.div>
 
                     {/* Bloco: Sonho */}
-                    <div
+                    <motion.div
+                        variants={itemVariants}
                         style={{
                             marginBottom: 20,
                             padding: 16,
@@ -311,7 +412,7 @@ const Interpretation: React.FC = () => {
                                 marginBottom: 6,
                             }}
                         >
-                            Sonho
+                            Sonho registrado
                         </h3>
                         <p
                             style={{
@@ -322,33 +423,34 @@ const Interpretation: React.FC = () => {
                         >
                             {dream.text}
                         </p>
-                    </div>
+                    </motion.div>
 
                     {/* Se não tiver interpretação encontrada */}
                     {!interpretationExists && (
-                        <div
+                        <motion.div
+                            variants={itemVariants}
                             style={{
                                 padding: 18,
                                 borderRadius: 18,
                                 background: '#F0F4F8',
-                                borderLeft: '4px solid var(--color-primary)',
+                                borderLeft: '4px solid #6366F1',
                             }}
                         >
                             <h3
                                 style={{
                                     fontSize: '0.8rem',
-                                    color: 'var(--color-text-secondary)',
+                                    color: '#475569',
                                     textTransform: 'uppercase',
                                     letterSpacing: '1px',
                                     marginBottom: 6,
                                     fontWeight: 600,
                                 }}
                             >
-                                Interpretação
+                                Interpretação indisponível
                             </h3>
                             <p
                                 style={{
-                                    color: 'var(--color-text-primary)',
+                                    color: '#1F2937',
                                     lineHeight: 1.6,
                                     fontSize: '0.95rem',
                                 }}
@@ -356,7 +458,7 @@ const Interpretation: React.FC = () => {
                                 Ainda não foi possível carregar uma interpretação detalhada para
                                 este sonho. Tente salvar um novo sonho ou verifique sua conexão.
                             </p>
-                        </div>
+                        </motion.div>
                     )}
 
                     {/* Se tiver interpretação, mostra todos os blocos ricos */}
@@ -364,7 +466,8 @@ const Interpretation: React.FC = () => {
                         <>
                             {/* Núcleo da interpretação */}
                             {view.main && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     style={{
                                         padding: 16,
                                         borderRadius: 18,
@@ -395,12 +498,13 @@ const Interpretation: React.FC = () => {
                                     >
                                         {view.main}
                                     </p>
-                                </div>
+                                </motion.div>
                             )}
 
                             {/* Simbologia principal */}
                             {view.symbols.length > 0 && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     style={{
                                         padding: 16,
                                         borderRadius: 18,
@@ -437,12 +541,13 @@ const Interpretation: React.FC = () => {
                                             </li>
                                         ))}
                                     </ul>
-                                </div>
+                                </motion.div>
                             )}
 
                             {/* Emoções sentidas */}
                             {view.emotions.length > 0 && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     style={{
                                         padding: 16,
                                         borderRadius: 18,
@@ -454,7 +559,7 @@ const Interpretation: React.FC = () => {
                                     <h3
                                         style={{
                                             fontSize: '0.8rem',
-                                            color: 'var(--color-text-secondary)',
+                                            color: '#475569',
                                             textTransform: 'uppercase',
                                             letterSpacing: '1px',
                                             marginBottom: 6,
@@ -479,19 +584,20 @@ const Interpretation: React.FC = () => {
                                                     background: 'rgba(59,130,246,0.1)',
                                                     border: '1px solid rgba(59,130,246,0.4)',
                                                     fontSize: '0.8rem',
-                                                    color: '#BFDBFE',
+                                                    color: '#1D4ED8', // antes era azul muito claro; agora mais forte e legível
                                                 }}
                                             >
                                                 {emo}
                                             </span>
                                         ))}
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
 
                             {/* Áreas da vida */}
                             {view.lifeAreas.length > 0 && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     style={{
                                         padding: 16,
                                         borderRadius: 18,
@@ -503,7 +609,7 @@ const Interpretation: React.FC = () => {
                                     <h3
                                         style={{
                                             fontSize: '0.8rem',
-                                            color: 'var(--color-text-secondary)',
+                                            color: '#475569',
                                             textTransform: 'uppercase',
                                             letterSpacing: '1px',
                                             marginBottom: 6,
@@ -528,19 +634,20 @@ const Interpretation: React.FC = () => {
                                                     background: 'rgba(16,185,129,0.08)',
                                                     border: '1px solid rgba(16,185,129,0.4)',
                                                     fontSize: '0.8rem',
-                                                    color: '#A7F3D0',
+                                                    color: '#047857', // antes era verde muito claro; agora verde escuro legível
                                                 }}
                                             >
                                                 {area}
                                             </span>
                                         ))}
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
 
                             {/* Conselho / contexto de vida */}
                             {view.advice && (
-                                <div
+                                <motion.div
+                                    variants={itemVariants}
                                     style={{
                                         padding: 16,
                                         borderRadius: 18,
@@ -571,11 +678,129 @@ const Interpretation: React.FC = () => {
                                     >
                                         {view.advice}
                                     </p>
-                                </div>
+                                </motion.div>
+                            )}
+                            {/* Bloco de Análise Profunda (Shadow Work) */}
+                            {view.deepAnalysis && (
+                                <motion.div
+                                    variants={itemVariants}
+                                    style={{
+                                        marginTop: 24,
+                                        padding: 20,
+                                        borderRadius: 20,
+                                        background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(67, 56, 202, 0.2))',
+                                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                                        <Sparkles size={20} color="#818CF8" />
+                                        <h3
+                                            style={{
+                                                fontSize: '1.1rem',
+                                                color: '#E0E7FF',
+                                                fontWeight: 700,
+                                                margin: 0,
+                                                letterSpacing: '-0.02em',
+                                            }}
+                                        >
+                                            Mergulho no Inconsciente
+                                        </h3>
+                                    </div>
+
+                                    {view.deepAnalysis.deepInsights.map((insight, idx) => (
+                                        <div key={idx} style={{ marginBottom: 16 }}>
+                                            <h4 style={{ color: '#A5B4FC', fontSize: '0.95rem', fontWeight: 600, marginBottom: 4 }}>
+                                                {insight.title}
+                                            </h4>
+                                            <p style={{ color: '#C7D2FE', fontSize: '0.9rem', lineHeight: 1.6, marginTop: 0 }}>
+                                                {insight.content}
+                                            </p>
+                                        </div>
+                                    ))}
+
+                                    {view.deepAnalysis.finalIntegration && (
+                                        <div style={{
+                                            padding: 14,
+                                            background: 'rgba(30, 27, 75, 0.4)',
+                                            borderRadius: 12,
+                                            borderLeft: '3px solid #6366F1'
+                                        }}>
+                                            <p style={{ color: '#E0E7FF', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>
+                                                "{view.deepAnalysis.finalIntegration}"
+                                            </p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+
+
+
+                            {/* Botão de Compartilhar (Novo, estilo Premium) */}
+                            <motion.button
+                                variants={itemVariants}
+                                whileHover={{ scale: 1.02, boxShadow: "0 8px 25px rgba(236, 72, 153, 0.5)" }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleShare}
+                                style={{
+                                    marginTop: 24,
+                                    width: '100%',
+                                    padding: '16px 20px',
+                                    borderRadius: 18,
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)', // Pink to Purple
+                                    color: '#FFFFFF',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 8px 20px rgba(236, 72, 153, 0.35)',
+                                    fontWeight: 700,
+                                    fontSize: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 12,
+                                    letterSpacing: '0.02em',
+                                }}
+                            >
+                                <Share2 size={22} />
+                                Compartilhar descoberta
+                            </motion.button>
+
+                            {/* Botão para Aprofundar Sonho (Reativado) */}
+                            {!view.deepAnalysis && (
+                                <motion.div
+                                    variants={itemVariants}
+                                    style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}
+                                >
+                                    <motion.button
+                                        whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(90, 62, 242, 0.6)" }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => navigate(`/deep-analysis/${dream.id}`)}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 12,
+                                            padding: '14px 28px',
+                                            borderRadius: 999,
+                                            border: 'none',
+                                            background: 'linear-gradient(135deg, #5A3EF2 0%, #46E4E1 100%)',
+                                            color: '#FFFFFF',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 8px 24px rgba(90, 62, 242, 0.4)',
+                                            fontWeight: 700,
+                                            fontSize: '1rem',
+                                            width: '100%', // Match width strategy if desired, or keep centered pill
+                                            justifyContent: 'center'
+                                        }}
+                                    >
+                                        <Sparkles size={20} />
+                                        Aprofunde mais o seu sonho
+                                        <ChevronRight size={18} />
+                                    </motion.button>
+                                </motion.div>
                             )}
                         </>
                     )}
-                </div>
+                </motion.div>
             </div>
         </Layout>
     );

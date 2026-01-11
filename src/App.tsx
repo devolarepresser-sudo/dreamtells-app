@@ -19,6 +19,8 @@ import Menu from './pages/Menu';
 import AboutTerms from './pages/AboutTerms';
 import Paywall from './components/Paywall';
 import Welcome from './pages/Welcome';
+import HowItWorks from './pages/HowItWorks';
+import DeepDreamAnalysis from './pages/DeepDreamAnalysis';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -32,9 +34,11 @@ const App: React.FC = () => {
                         <Route path="/language" element={<LanguageSelect />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/welcome" element={<Welcome />} />
+                        <Route path="/how-it-works" element={<HowItWorks />} />
                         <Route path="/about" element={<AboutTerms />} />
                         <Route path="/premium" element={<Paywall />} />
 
+                        {/* Protected Routes */}
                         {/* Protected Routes */}
                         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                         <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
@@ -43,8 +47,13 @@ const App: React.FC = () => {
                         <Route path="/interpretation" element={<Interpretation />} />
                         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
                         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
+                        {/* Premium Routes */}
                         <Route path="/stats" element={<ProtectedRoute><Stats /></ProtectedRoute>} />
                         <Route path="/symbols" element={<ProtectedRoute><Symbols /></ProtectedRoute>} />
+                        <Route path="/deep-analysis/:id" element={<ProtectedRoute><DeepDreamAnalysis /></ProtectedRoute>} />
+                        {/* Fallback para deep-analysis sem ID */}
+                        <Route path="/deep-analysis" element={<Navigate to="/history" replace />} />
                         {/* <Route path="/life-context" element={<ProtectedRoute><LifeContext /></ProtectedRoute>} /> */}
                         {/* <Route path="/daily-message" element={<ProtectedRoute><DailyMessage /></ProtectedRoute>} /> */}
 

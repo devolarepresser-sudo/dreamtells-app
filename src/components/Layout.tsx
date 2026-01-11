@@ -4,10 +4,11 @@ import { Menu as MenuIcon, ChevronLeft } from 'lucide-react';
 
 interface LayoutProps {
     children: ReactNode;
-    title?: string;
+    title?: string | ReactNode;
     showBack?: boolean;   // mostra botão voltar à esquerda
     showMenu?: boolean;   // mostra botão menu à direita
     icon?: ReactNode;     // ícone na frente do título
+    multiline?: boolean;  // permitir múltiplas linhas no título
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -16,6 +17,7 @@ const Layout: React.FC<LayoutProps> = ({
     showBack = false,
     showMenu = true,
     icon,
+    multiline = false,
 }) => {
     const navigate = useNavigate();
 
@@ -23,10 +25,10 @@ const Layout: React.FC<LayoutProps> = ({
     const handleMenu = () => navigate('/menu');
 
     return (
-        // removido paddingTop exagerado que criava um buraco
-        <div className="container">
+        <div className="container globalBackgroundPremium">
             {/* HEADER PREMIUM FIXO */}
             <header
+                className="headerPremium"
                 style={{
                     position: 'fixed',
                     top: 0,
@@ -34,15 +36,25 @@ const Layout: React.FC<LayoutProps> = ({
                     transform: 'translateX(-50%)',
                     width: '100%',
                     maxWidth: 480,
-                    padding: '12px 12px 14px',
-                    zIndex: 40,
+                    // Aumentando padding top para 16px para forçar a visualização da borda
+                    // Se for multiline, remove padding do topo para "grudar"
+                    padding: multiline ? '0 12px 14px' : '16px 12px 14px',
+                    background: 'transparent', // Garante que nada bloqueie a visão
+                    border: 'none',            // Remove borda da classe CSS
+                    boxShadow: 'none',         // Remove sombra da classe CSS
+                    backdropFilter: 'none',    // Remove blur da classe CSS
+                    height: multiline ? 'auto' : 64, // Ajusta altura se for multiline
                 }}
             >
                 <div
+                    className="headerPremium-inner"
                     style={{
                         width: '100%',
-                        borderRadius: 999,
-                        padding: '14px 20px', // mais alto e proporcional
+                        borderRadius: multiline ? '0 0 18px 18px' : 18,
+
+                        // ✅ AQUI: aumenta a altura "para baixo" quase o dobro
+                        padding: multiline ? '20px 20px 24px' : '26px 20px',
+
                         background:
                             'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(37,99,235,0.98))',
                         border: '1px solid rgba(148,163,184,0.8)',
@@ -83,40 +95,30 @@ const Layout: React.FC<LayoutProps> = ({
                     </div>
 
                     {/* CENTRO – ÍCONE + TÍTULO */}
-                    <div
-                        style={{
-                            flex: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            minWidth: 0,
-                        }}
-                    >
-                        {icon && (
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                        <div className="headerTitlePremium">
+                            {icon && (
+                                <div className="headerIconTile">
+                                    <div className="headerIconTile-inner">
+                                        {icon}
+                                    </div>
+                                </div>
+                            )}
                             <span
-                                style={{
+                                className="headerTitleText"
+                                style={multiline ? {
+                                    whiteSpace: 'normal',
                                     display: 'flex',
+                                    flexDirection: 'column',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                }}
+                                    textAlign: 'center',
+                                    lineHeight: 1.2,
+                                    fontSize: '0.95rem'
+                                } : {}}
                             >
-                                {icon}
+                                {title}
                             </span>
-                        )}
-                        <h1
-                            style={{
-                                fontSize: '1.1rem',
-                                fontWeight: 700,
-                                color: '#F9FAFB',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                letterSpacing: '-0.03em',
-                            }}
-                        >
-                            {title}
-                        </h1>
+                        </div>
                     </div>
 
                     {/* DIREITA – MENU (OPCIONAL) */}
@@ -150,11 +152,12 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
             </header>
 
-            {/* CONTEÚDO DAS PÁGINAS – espaço exato pro header fixo */}
+            {/* CONTEÚDO DAS PÁGINAS – espaço pro header fixo */}
             <main
                 className="page-content"
                 style={{
-                    paddingTop: 96, // suficiente pra não esconder conteúdo, com gap bem menor
+                    // ✅ AQUI: acompanha a nova altura do header pra não esconder conteúdo
+                    paddingTop: multiline ? 136 : 126,
                 }}
             >
                 {children}

@@ -5,8 +5,10 @@ import {
     updateProfile,
     User as FirebaseUser,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithCredential,
+    sendPasswordResetEmail
 } from "firebase/auth";
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 import { User, Plan } from "../types";
@@ -42,6 +44,10 @@ const checkTrialExpiration = (user: User): User => {
 };
 
 export const authService = {
+    resetPassword: async (email: string) => {
+        await sendPasswordResetEmail(auth, email);
+    },
+
     register: async (email: string, password: string, name: string): Promise<User> => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
@@ -146,8 +152,10 @@ export const authService = {
     },
 
     loginWithGoogle: async (): Promise<User> => {
-        const provider = new GoogleAuthProvider();
-        const userCredential = await signInWithPopup(auth, provider);
+        const googleUser = await GoogleAuth.signIn();
+        const idToken = googleUser.authentication.idToken;
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, credential);
         const firebaseUser = userCredential.user;
 
         // Fetch user data from Firestore

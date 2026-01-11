@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, Trash2, Heart, X, Search } from 'lucide-react';
+import { Calendar, ChevronRight, Trash2, Heart, Search, BookOpen } from 'lucide-react';
 import { DreamEntry } from '../types';
 
 const History: React.FC = () => {
-    const { dreams, t, toggleFavorite, deleteDream, clearDreams } = useApp();
-    const [selectedDream, setSelectedDream] = useState<DreamEntry | null>(null);
+    const { dreams, t, clearDreams, toggleFavorite } = useApp();
+    const navigate = useNavigate();
     const [filter, setFilter] = useState<'all' | 'favorites'>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -66,10 +67,6 @@ const History: React.FC = () => {
         return text.length > 80 ? `${text.slice(0, 80)}…` : text;
     };
 
-    const getDreamInterpretation = (dream: DreamEntry) => {
-        return extractInterpretation(dream);
-    };
-
     const filteredDreams = useMemo(
         () =>
             dreams.filter((d) => {
@@ -83,8 +80,23 @@ const History: React.FC = () => {
         [dreams, filter, searchTerm]
     );
 
+    const handleDreamClick = (dream: DreamEntry) => {
+        // Navega para a tela de interpretação passando o objeto completo
+        // Se a tela de interpretação espera formatar do jeito que ela faz (com buildInterpretationView),
+        // basta passar o dreamEntry que lá ela se vira.
+        navigate('/interpretation', {
+            state: {
+                dreamId: dream.id,
+                dream: dream
+            }
+        });
+    };
+
     return (
-        <Layout title={t('history_title')}>
+        <Layout
+            title={t('history_title')}
+            icon={<BookOpen size={18} color="#F9FAFB" />}
+        >
             <div style={{ flex: 1 }}>
                 {/* TOPO: busca + filtro favoritos */}
                 <div
@@ -113,7 +125,7 @@ const History: React.FC = () => {
                         />
                         <input
                             type="text"
-                            placeholder="Search..."
+                            placeholder="Buscar..."
                             className="input-field"
                             style={{
                                 paddingLeft: 40,
@@ -174,7 +186,6 @@ const History: React.FC = () => {
                                     )
                                 ) {
                                     clearDreams();
-                                    setSelectedDream(null);
                                 }
                             }}
                             style={{
@@ -224,7 +235,7 @@ const History: React.FC = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.04 }}
                                 className="card"
-                                onClick={() => setSelectedDream(dream)}
+                                onClick={() => handleDreamClick(dream)}
                                 style={{
                                     padding: 14,
                                     cursor: 'pointer',
@@ -299,13 +310,6 @@ const History: React.FC = () => {
                                             gap: 6,
                                         }}
                                     >
-                                        {dream.isFavorite && (
-                                            <Heart
-                                                size={12}
-                                                fill="#F87171"
-                                                color="#F87171"
-                                            />
-                                        )}
                                         <p
                                             style={{
                                                 fontSize: '0.8rem',
@@ -321,7 +325,7 @@ const History: React.FC = () => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedDream(dream);
+                                            handleDreamClick(dream);
                                         }}
                                         style={{
                                             marginTop: 8,
@@ -340,6 +344,30 @@ const History: React.FC = () => {
                                     </button>
                                 </div>
 
+                                {/* Botão Favorito - Restaurado */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(dream.id);
+                                    }}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 10,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginRight: 2,
+                                    }}
+                                >
+                                    <Heart
+                                        size={22}
+                                        fill={dream.isFavorite ? '#F87171' : 'none'}
+                                        color={dream.isFavorite ? '#F87171' : '#64748B'}
+                                    />
+                                </button>
+
                                 <ChevronRight
                                     size={18}
                                     color="#9CA3AF"
@@ -348,232 +376,6 @@ const History: React.FC = () => {
                         ))}
                     </div>
                 )}
-
-                {/* MODAL DETALHES DO SONHO */}
-                <AnimatePresence>
-                    {selectedDream && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            style={{
-                                position: 'fixed',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                background: 'rgba(0,0,0,0.7)',
-                                zIndex: 50,
-                                display: 'flex',
-                                alignItems: 'flex-end',
-                                justifyContent: 'center',
-                                backdropFilter: 'blur(6px)',
-                            }}
-                            onClick={() => setSelectedDream(null)}
-                        >
-                            <motion.div
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{
-                                    type: 'spring',
-                                    damping: 26,
-                                    stiffness: 220,
-                                }}
-                                style={{
-                                    background: 'var(--color-white)',
-                                    width: '100%',
-                                    maxWidth: 480,
-                                    borderTopLeftRadius: 24,
-                                    borderTopRightRadius: 24,
-                                    padding: '24px 20px 28px',
-                                    maxHeight: '90vh',
-                                    overflowY: 'auto',
-                                    boxShadow:
-                                        '0 -18px 40px rgba(15,23,42,0.8)',
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {/* Cabeçalho modal */}
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        marginBottom: 18,
-                                    }}
-                                >
-                                    <h3
-                                        style={{
-                                            fontSize: '1.1rem',
-                                            fontWeight: 700,
-                                            color: '#1F2933',
-                                        }}
-                                    >
-                                        Dream Details
-                                    </h3>
-                                    <button
-                                        onClick={() =>
-                                            setSelectedDream(null)
-                                        }
-                                        style={{
-                                            background: '#F7FAFC',
-                                            padding: 8,
-                                            borderRadius: '50%',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            boxShadow:
-                                                '0 8px 24px rgba(15,23,42,0.18)',
-                                        }}
-                                    >
-                                        <X
-                                            size={20}
-                                            color="var(--color-text-secondary)"
-                                        />
-                                    </button>
-                                </div>
-
-                                {/* Texto do sonho */}
-                                <div style={{ marginBottom: 20 }}>
-                                    <h4
-                                        style={{
-                                            fontSize: '0.8rem',
-                                            color: 'var(--color-text-secondary)',
-                                            marginBottom: 6,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '1px',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        Dream
-                                    </h4>
-                                    <p
-                                        style={{
-                                            lineHeight: 1.6,
-                                            color: 'var(--color-text-primary)',
-                                            fontSize: '1rem',
-                                        }}
-                                    >
-                                        {selectedDream.text}
-                                    </p>
-                                </div>
-
-                                {/* Interpretação */}
-                                <div style={{ marginBottom: 24 }}>
-                                    <h4
-                                        style={{
-                                            fontSize: '0.8rem',
-                                            color: 'var(--color-text-secondary)',
-                                            marginBottom: 6,
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '1px',
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        Interpretation
-                                    </h4>
-                                    <div
-                                        style={{
-                                            background: '#F0F4F8',
-                                            padding: 18,
-                                            borderRadius: 16,
-                                            borderLeft:
-                                                '4px solid var(--color-primary)',
-                                        }}
-                                    >
-                                        <p
-                                            style={{
-                                                lineHeight: 1.6,
-                                                color: 'var(--color-text-primary)',
-                                            }}
-                                        >
-                                            {getDreamInterpretation(
-                                                selectedDream
-                                            ) || 'Nenhuma interpretação salva para este sonho.'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Ações */}
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        gap: 10,
-                                    }}
-                                >
-                                    <button
-                                        className="btn-secondary"
-                                        onClick={() => {
-                                            toggleFavorite(
-                                                selectedDream.id
-                                            );
-                                            setSelectedDream({
-                                                ...selectedDream,
-                                                isFavorite:
-                                                    !selectedDream.isFavorite,
-                                            });
-                                        }}
-                                        style={{
-                                            flex: 1,
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            borderRadius: 999,
-                                            border:
-                                                '1px solid rgba(148,163,184,0.8)',
-                                            padding: '10px 14px',
-                                            background: '#F9FAFB',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        <Heart
-                                            size={20}
-                                            style={{ marginRight: 8 }}
-                                            fill={
-                                                selectedDream.isFavorite
-                                                    ? '#E53E3E'
-                                                    : 'none'
-                                            }
-                                            color={
-                                                selectedDream.isFavorite
-                                                    ? '#E53E3E'
-                                                    : 'currentColor'
-                                            }
-                                        />
-                                        Favorite
-                                    </button>
-
-                                    <button
-                                        className="btn-secondary"
-                                        onClick={async (e) => {
-                                            e.stopPropagation();
-                                            if (window.confirm(t('confirm_delete') || 'Tem certeza que deseja excluir?')) {
-                                                await deleteDream(selectedDream.id);
-                                                setSelectedDream(null);
-                                            }
-                                        }}
-                                        style={{
-                                            flex: 0.5,
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            borderRadius: 999,
-                                            borderColor: '#FEB2B2',
-                                            color: '#E53E3E',
-                                            background: '#FFF5F5',
-                                            padding: '10px 12px',
-                                            border: '1px solid #FEB2B2',
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
         </Layout>
     );

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Configuração para permitir testes em DEV com backend local -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Emulador Android acessa localhost via 10.0.2.2 -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- IP local comum (ajuste se necessário) -->
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- IPs privados comuns na rede local -->
+        <domain includeSubdomains="true">192.168.0.0</domain>
+        <domain includeSubdomains="true">192.168.1.0</domain>
+        <domain includeSubdomains="true">10.0.0.0</domain>
+        <domain includeSubdomains="true">172.16.0.0</domain>
+    </domain-config>
+
+    <!-- Base config: Cleartext NÃO permitido por padrão (produção) -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

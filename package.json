@@ -11,10 +11,13 @@
     "server": "node server/index.js"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^7.4.4",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
+    "@capacitor/preferences": "^7.0.3",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -26,6 +29,7 @@
     "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

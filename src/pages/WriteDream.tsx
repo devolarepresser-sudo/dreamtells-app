@@ -11,36 +11,43 @@ const WriteDream: React.FC = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const navigate = useNavigate();
-    const { addDream, user, t } = useApp();
+    const { addDream, user, t, language } = useApp();
 
     const handleAnalyze = async () => {
         if (!dreamText.trim()) return;
 
+        // Se não estiver logado (fora do modo dev), manda para login
+        if (!user && !FREE_DEV_MODE) {
+            navigate('/login');
+            return;
+        }
+
+        setIsAnalyzing(true);
+
         try {
-            // Garantir login
-            if (!user && !FREE_DEV_MODE) {
-                navigate('/login');
-                return;
-            }
-
-            // Garantir IA configurada
-            if (!aiService || typeof aiService.analyzeDream !== 'function') {
-                alert('Erro interno da IA. Tente novamente mais tarde.');
-                return;
-            }
-
-            setIsAnalyzing(true);
-
-            // Interpretação
             const userId = user?.id || 'dev-guest';
-            const result = await aiService.analyzeDream(dreamText, userId);
 
-            // Salvamento
-            const id = await addDream(dreamText, result, 'text');
+            // 1) IA SEMPRE PRIMEIRO - Passando idioma
+            const result = await aiService.analyzeDream(dreamText, userId, language);
 
-            // Usar navegação SPA
-            navigate('/interpretation', { state: { dreamId: id } });
+            // 2) tenta salvar, mas NÃO deixa isso travar a navegação
+            let id = 'temp-' + Date.now();
+            try {
+                id = await addDream(dreamText, result, 'text');
+            } catch (saveErr) {
+                console.warn(
+                    '[WriteDream] Falha ao salvar sonho no Firestore, seguindo mesmo assim:',
+                    saveErr
+                );
+            }
 
+            // 3) SEMPRE navega para interpretação, mesmo se salvar falhar
+            navigate('/interpretation', {
+                state: {
+                    dreamId: id,
+                    dream: { id, text: dreamText, ...result }
+                }
+            });
         } catch (error) {
             console.error(error);
             alert('Erro ao interpretar o sonho. Tente novamente.');
@@ -188,7 +195,7 @@ const WriteDream: React.FC = () => {
                                 <>
                                     <Loader
                                         size={20}
-                                        className="animate-spin"
+                                        className="spinner-icon"
                                         style={{ marginRight: 10 }}
                                     />
                                     Interpretando seu sonho...
@@ -202,6 +209,28 @@ const WriteDream: React.FC = () => {
                                 </>
                             )}
                         </button>
+
+                        {isAnalyzing && (
+                            <div
+                                style={{
+                                    marginTop: 14,
+                                    padding: '10px 14px',
+                                    borderRadius: 16,
+                                    background: 'rgba(30,41,59,0.7)',
+                                    border: '1px solid rgba(148,163,184,0.55)',
+                                    color: '#E2E8F0',
+                                    fontSize: '0.82rem',
+                                    lineHeight: 1.5,
+                                    boxShadow: '0 10px 26px rgba(15,23,42,0.85)',
+                                    backdropFilter: 'blur(6px)',
+                                }}
+                            >
+                                A interpretação do seu sonho está sendo processada.
+                                Dependendo da complexidade, símbolos e detalhes envolvidos,
+                                isso pode levar alguns segundos. Você pode aguardar aqui
+                                enquanto a análise é concluída.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

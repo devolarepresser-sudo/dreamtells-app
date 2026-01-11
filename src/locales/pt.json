@@ -12,7 +12,7 @@
     "forgot_password": "Esqueci minha senha",
     "switch_to_create": "Não tem conta? Crie uma",
     "switch_to_login": "Já tem conta? Entre",
-    "home_welcome": "Olá, {name}",
+    "home_welcome": "Olá",
     "home_tagline": "Descubra o que seus sonhos revelam sobre você.",
     "home_hero_title": "Descubra o que seus sonhos revelam sobre você.",
     "home_hero_body": "No DreamTells Sonhos, cada imagem, sensação e símbolo ganha significado através de nossa inteligência artificial avançada, capaz de analisar emoções, padrões e mensagens ocultas. Compartilhe seu sonho e receba uma interpretação clara, profunda e personalizada — feita para ajudar você a entender sua mente, sua alma e o que sua vida está tentando mostrar enquanto você dorme.",
@@ -48,7 +48,7 @@
     "menu_daily_message": "Mensagem do Dia",
     "menu_interpretation": "Interpretação",
     "menu_life_context": "Contexto de Vida & Sonhos",
-    "menu_stats": "Estatísticas & Insights",
+    "menu_stats": "Diagnóstico de Ciclos",
     "menu_symbols": "Biblioteca de Símbolos",
     "menu_premium": "Vantagens Premium",
     "menu_profile": "Perfil",
@@ -68,5 +68,13 @@
     "no_account_link": "Não tem conta? Crie uma",
     "have_account_link": "Já tem conta? Entre",
     "home_welcome_generic": "Bem-vindo ao DreamTells",
-    "confirm_delete": "Tem certeza que deseja excluir?"
+    "confirm_delete": "Tem certeza que deseja excluir?",
+    "how_it_works_title": "Como Funciona",
+    "step_1_title": "Compartilhe seu Sonho",
+    "step_1_desc": "Grave um áudio ou escreva o que você lembra.",
+    "step_2_title": "Interpretação por IA",
+    "step_2_desc": "Nossa IA analisa símbolos, emoções e padrões.",
+    "step_3_title": "Autoconhecimento",
+    "step_3_desc": "Desbloqueie insights profundos sobre seu subconsciente.",
+    "action_login_now": "Entrar e Começar"
 }

@@ -5,9 +5,10 @@ import { FREE_DEV_MODE } from '../config/featureFlags';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
+    requirePremium?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requirePremium = false }) => {
     const { user, canUsePremium, isLoading } = useApp();
     const navigate = useNavigate();
 
@@ -23,11 +24,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
             return;
         }
 
-        // Centralized Premium Check
-        if (!canUsePremium()) {
+        // Centralized Premium Check - ONLY if required
+        if (requirePremium && !canUsePremium()) {
             navigate('/premium');
         }
-    }, [user, canUsePremium, navigate, isLoading]);
+    }, [user, canUsePremium, navigate, isLoading, requirePremium]);
 
     // Show nothing (or a loader) while initializing
     if (isLoading) {
@@ -36,8 +37,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         );
     }
 
-    if (!FREE_DEV_MODE && (!user || !canUsePremium())) {
-        return null;
+    // Critical Fix: Do NOT return null here, or Router might fall back to * -> /
+    // Instead return a safe placeholder while navigate takes effect in useEffect
+    if (!FREE_DEV_MODE && !user) {
+        return (
+            <div style={{ height: '100vh', width: '100%', background: '#0F172A' }} />
+        );
+    }
+
+    // Only block render if premium is strictly required and user doesn't have it
+    if (!FREE_DEV_MODE && requirePremium && !canUsePremium()) {
+        return (
+            <div style={{ height: '100vh', width: '100%', background: '#0F172A' }} />
+        );
     }
 
     return <>{children}</>;

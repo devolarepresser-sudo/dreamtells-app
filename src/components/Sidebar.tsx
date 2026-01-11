@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { X, Home, PenTool, Mic, BookOpen, User, LogOut, Info, BarChart2, Book, Crown, Shield } from 'lucide-react';
+import { X, Home, Mic, BookOpen, User, LogOut, Info, BarChart2, Book, Crown, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
@@ -21,15 +21,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
     const menuItems = [
         { icon: Home, label: 'Home', path: '/home' },
-        { icon: PenTool, label: t('action_write'), path: '/write' },
         { icon: Mic, label: t('action_record'), path: '/record' },
         { icon: BookOpen, label: t('action_history'), path: '/history' },
-    ];
-
-    const premiumItems = [
         { icon: BarChart2, label: 'Estatísticas & Insights', path: '/stats' },
         { icon: Book, label: 'Biblioteca de Símbolos', path: '/symbols' },
     ];
+
+    const premiumItems: { icon: any; label: string; path: string }[] = [];
 
     const settingsItems = [
         { icon: User, label: t('profile_title'), path: '/profile' },

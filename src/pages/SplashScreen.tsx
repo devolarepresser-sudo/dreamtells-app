@@ -6,20 +6,45 @@ import { useApp } from '../context/AppContext';
 
 const SplashScreen: React.FC = () => {
     const navigate = useNavigate();
-    const { user, language } = useApp();
+    const { user, setLanguage } = useApp();
 
     useEffect(() => {
         const timer = setTimeout(() => {
             if (user) {
                 navigate('/home');
-            } else if (language) {
+                return;
+            }
+
+            // Se já tem idioma no contexto (carregado do storage), segue
+            // Mas precisamos distinguir se é "default state" ou "saved state"
+            // O AppContext carrega do storage na inicialização.
+            // Se o storage retornou algo, o "language" já estará setado corretamente.
+            // Porem, se for a primeira vez, o AppContext inicia com 'pt' (default state).
+            // Vamos verificar o storage DIRETAMENTE aqui para ter certeza se é user choice ou default.
+
+            const storedLang = localStorage.getItem('dreamtells_lang');
+
+            if (storedLang) {
+                // Usuário já escolheu antes -> Segue fluxo normal
                 navigate('/welcome');
             } else {
-                navigate('/language');
+                // Primeira vez -> Tenta auto-detectar
+                const deviceLang = navigator.language.slice(0, 2).toLowerCase();
+                const supportedLangs = ['pt', 'es', 'en', 'fr', 'it', 'de'];
+
+                if (supportedLangs.includes(deviceLang)) {
+                    // Sucesso: Detectou idioma suportado
+                    setLanguage(deviceLang as any);
+                    navigate('/welcome');
+                } else {
+                    // Fallback: Dispositivo em idioma não suportado (ex: Russo) -> Vai para seleção manual
+                    // (Opcional: Poderiamos setar 'en' e ir direto, mas deixar escolher é gentil)
+                    navigate('/language');
+                }
             }
-        }, 2500);
+        }, 2000); // Reduzi um pouco o tempo para agilizar
         return () => clearTimeout(timer);
-    }, [navigate, user, language]);
+    }, [navigate, user, setLanguage]);
 
     return (
         <div

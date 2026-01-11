@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
-import {
-    User,
-    Mail,
-    Globe,
-    LogOut,
-    Crown
-} from 'lucide-react';
+import { User, Globe, LogOut, Crown } from 'lucide-react';
 import { Language } from '../types';
 import Paywall from '../components/Paywall';
 import { AnimatePresence } from 'framer-motion';
@@ -23,7 +17,11 @@ const Profile: React.FC = () => {
     const hasAccess = canUsePremium();
 
     return (
-        <Layout title={t('profile_title')} showBack>
+        <Layout
+            title={t('profile_title')}
+            showBack
+            icon={<User size={18} color="#F9FAFB" />}
+        >
             <AnimatePresence>
                 {showPaywall && <Paywall onClose={() => setShowPaywall(false)} />}
             </AnimatePresence>
@@ -33,20 +31,17 @@ const Profile: React.FC = () => {
                     minHeight: '100vh',
                     padding: '18px 16px 32px',
                     background:
-                        'radial-gradient(circle at top, #1E293B 0%, #0B1120 40%, #020617 100%)',
+                        'transparent',
                     display: 'flex',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                 }}
             >
+                {/* ✅ Wrapper SEM “card de página inteira” (sem moldura, sem apertar conteúdo) */}
                 <div
                     style={{
                         width: '100%',
-                        maxWidth: 520,
-                        background: 'linear-gradient(145deg,#0B1026,#111827)',
-                        padding: 24,
-                        borderRadius: 24,
-                        border: '1px solid rgba(148,163,184,0.35)',
-                        boxShadow: '0 22px 60px rgba(15,23,42,0.9)',
+                        maxWidth: 480,
+                        padding: 0,
                     }}
                 >
                     {/* FOTO / INFORMAÇÕES */}
@@ -55,7 +50,8 @@ const Profile: React.FC = () => {
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
-                            marginBottom: 32
+                            marginBottom: 32,
+                            paddingTop: 8,
                         }}
                     >
                         {/* Avatar premium */}
@@ -64,17 +60,15 @@ const Profile: React.FC = () => {
                                 width: 110,
                                 height: 110,
                                 borderRadius: '50%',
-                                background:
-                                    'linear-gradient(135deg,#5A3EF2,#46E4E1)',
+                                background: 'linear-gradient(135deg,#5A3EF2,#46E4E1)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontSize: '2.4rem',
                                 fontWeight: 700,
                                 color: '#FFF',
-                                boxShadow:
-                                    '0 12px 32px rgba(90,62,242,0.55)',
-                                position: 'relative'
+                                boxShadow: '0 12px 32px rgba(90,62,242,0.55)',
+                                position: 'relative',
                             }}
                         >
                             {user?.name?.[0] || 'D'}
@@ -89,8 +83,7 @@ const Profile: React.FC = () => {
                                         borderRadius: '50%',
                                         padding: 6,
                                         border: '2px solid #FFF',
-                                        boxShadow:
-                                            '0 2px 6px rgba(0,0,0,0.3)'
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                                     }}
                                 >
                                     <Crown size={16} color="#FFF" />
@@ -103,28 +96,25 @@ const Profile: React.FC = () => {
                                 marginTop: 14,
                                 fontSize: '1.4rem',
                                 fontWeight: 800,
-                                color: '#F9FAFB'
+                                color: '#F9FAFB',
                             }}
                         >
                             {user?.name || 'Dreamer'}
                         </h2>
 
-                        <p style={{ color: 'rgba(226,232,240,0.7)' }}>
-                            {user?.email}
-                        </p>
+                        <p style={{ color: 'rgba(226,232,240,0.7)' }}>{user?.email}</p>
 
                         {/* Status Premium */}
                         <div style={{ marginTop: 18 }}>
                             {hasAccess ? (
                                 <span
                                     style={{
-                                        background:
-                                            'linear-gradient(135deg,#F1C40F,#FACC15)',
+                                        background: 'linear-gradient(135deg,#F1C40F,#FACC15)',
                                         padding: '6px 14px',
                                         borderRadius: 12,
                                         fontSize: '0.75rem',
                                         fontWeight: 700,
-                                        color: '#111'
+                                        color: '#111',
                                     }}
                                 >
                                     PREMIUM ATIVO
@@ -137,7 +127,7 @@ const Profile: React.FC = () => {
                                         fontWeight: 600,
                                         background: 'transparent',
                                         border: 'none',
-                                        cursor: 'pointer'
+                                        cursor: 'pointer',
                                     }}
                                 >
                                     Ativar Premium
@@ -149,14 +139,12 @@ const Profile: React.FC = () => {
                     {/* CARTÃO DE CONFIGURAÇÕES */}
                     <div
                         style={{
-                            background:
-                                'linear-gradient(135deg,#0F172A,#1E293B)',
+                            background: 'linear-gradient(135deg,#0F172A,#1E293B)',
                             borderRadius: 20,
                             border: '1px solid rgba(148,163,184,0.35)',
                             padding: 0,
                             overflow: 'hidden',
-                            boxShadow:
-                                '0 12px 32px rgba(15,23,42,0.5)'
+                            boxShadow: '0 12px 32px rgba(15,23,42,0.5)',
                         }}
                     >
                         {/* Nome */}
@@ -166,31 +154,16 @@ const Profile: React.FC = () => {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                borderBottom:
-                                    '1px solid rgba(148,163,184,0.2)'
+                                borderBottom: '1px solid rgba(148,163,184,0.2)',
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <User
-                                    size={20}
-                                    color="#9CA3AF"
-                                    style={{ marginRight: 16 }}
-                                />
-                                <span
-                                    style={{
-                                        color: '#F9FAFB',
-                                        fontWeight: 500
-                                    }}
-                                >
+                                <User size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                                <span style={{ color: '#F9FAFB', fontWeight: 500 }}>
                                     {t('name_placeholder')}
                                 </span>
                             </div>
-                            <span
-                                style={{
-                                    color: 'rgba(226,232,240,0.7)',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
+                            <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: '0.9rem' }}>
                                 {user?.name}
                             </span>
                         </div>
@@ -201,21 +174,12 @@ const Profile: React.FC = () => {
                                 padding: '20px 24px',
                                 display: 'flex',
                                 justifyContent: 'space-between',
-                                alignItems: 'center'
+                                alignItems: 'center',
                             }}
                         >
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <Globe
-                                    size={20}
-                                    color="#9CA3AF"
-                                    style={{ marginRight: 16 }}
-                                />
-                                <span
-                                    style={{
-                                        color: '#F9FAFB',
-                                        fontWeight: 500
-                                    }}
-                                >
+                                <Globe size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                                <span style={{ color: '#F9FAFB', fontWeight: 500 }}>
                                     {t('settings_language')}
                                 </span>
                             </div>
@@ -229,12 +193,15 @@ const Profile: React.FC = () => {
                                     color: '#60A5FA',
                                     fontWeight: 600,
                                     cursor: 'pointer',
-                                    fontSize: '0.95rem'
+                                    fontSize: '0.95rem',
                                 }}
                             >
                                 <option value="pt">Português</option>
                                 <option value="es">Español</option>
                                 <option value="en">English</option>
+                                <option value="fr">Français</option>
+                                <option value="it">Italiano</option>
+                                <option value="de">Deutsch</option>
                             </select>
                         </div>
                     </div>
@@ -245,8 +212,7 @@ const Profile: React.FC = () => {
                         style={{
                             width: '100%',
                             padding: '16px',
-                            background:
-                                'linear-gradient(135deg,#FCA5A5,#EF4444)',
+                            background: 'linear-gradient(135deg,#FCA5A5,#EF4444)',
                             color: '#111827',
                             fontWeight: 700,
                             borderRadius: 18,
@@ -255,9 +221,8 @@ const Profile: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow:
-                                '0 18px 40px rgba(248,113,113,0.5)',
-                            cursor: 'pointer'
+                            boxShadow: '0 18px 40px rgba(248,113,113,0.5)',
+                            cursor: 'pointer',
                         }}
                     >
                         <LogOut size={20} style={{ marginRight: 10 }} />

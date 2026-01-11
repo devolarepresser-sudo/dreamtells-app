@@ -1,0 +1,39 @@
+{
+    "project_info": {
+        "project_number": "28214150046",
+        "project_id": "dreamtells-sonhos",
+        "storage_bucket": "dreamtells-sonhos.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:28214150046:android:20faff21452ab740470c8f",
+                "android_client_info": {
+                    "package_name": "com.dreamtells.sonhos"
+                }
+            },
+            "oauth_client": [
+                {
+                    "client_id": "28214150046-d8nht99v068b3j1fbbtvbtsmb1l6ji58.apps.googleusercontent.com",
+                    "client_type": 3
+                }
+            ],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyDDw_KGacXb7TfsMS7sht9uNJxvbw4zYN4"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": [
+                        {
+                            "client_id": "28214150046-d8nht99v068b3j1fbbtvbtsmb1l6ji58.apps.googleusercontent.com",
+                            "client_type": 3
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
