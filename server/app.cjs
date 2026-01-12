@@ -4,17 +4,18 @@ console.log("BOOT VERSION: 2026-01-11 ROUTES FIX");
  * app.cjs — DreamTells Backend (Render-ready)
  * Correções principais:
  * - Adiciona GET / (health check)
+ * - Adiciona GET /healthz (para Health Check do Render)
  * - Adiciona POST /api/global-analysis (endpoint que o app está chamando)
  * - Mantém compatibilidade com rotas antigas
- * - Melhora alias /api/analyze-deep
- * - Robustez no parsing do JSON retornado pela OpenAI
+ * - Melhora robustez no parsing do JSON retornado pela OpenAI
  */
 
 const fs = require("fs");
 const path = require("path");
 
 // Carrega .env apenas se existir localmente (no Render, use Environment Variables)
-const envPath = path.join(__dirname, "server", ".env");
+// ✅ FIX: como este arquivo está dentro de /server, o .env certo é /server/.env
+const envPath = path.join(__dirname, ".env");
 if (fs.existsSync(envPath)) {
     require("dotenv").config({ path: envPath });
 } else {
@@ -48,8 +49,13 @@ app.get("/", (req, res) => {
     res.status(200).send("DreamTells backend OK");
 });
 
-// (Opcional) health explícito
+// Útil para debug local
 app.get("/health", (req, res) => {
+    res.status(200).json({ ok: true });
+});
+
+// ✅ Render Health Check está configurado como /healthz no seu painel
+app.get("/healthz", (req, res) => {
     res.status(200).json({ ok: true });
 });
 
@@ -145,13 +151,10 @@ async function interpretarSonhoIA(textoSonho, uid) {
         ],
     });
 
+    // ✅ FIX: pega o texto de forma robusta
     const raw =
         response.output_text ||
-        (response.output &&
-            response.output[0] &&
-            response.output[0].content &&
-            response.output[0].content[0] &&
-            response.output[0].content[0].text) ||
+        response.output?.[0]?.content?.[0]?.text ||
         "";
 
     const result = parseJsonSafely(raw);
@@ -166,12 +169,9 @@ app.use("/api/dreams", dreamRoutes);
 
 // =========================
 // Alias: /api/analyze-deep
-// Melhor que mexer em req.url.
-// Se o router tiver /analyze-deep, chamamos ele por baixo.
+// Encaminha para /api/dreams/analyze-deep
 // =========================
 app.post("/api/analyze-deep", (req, res, next) => {
-    // Encaminha para o router montado em /api/dreams
-    // simulando a chamada /api/dreams/analyze-deep
     req.url = "/analyze-deep";
     dreamRoutes(req, res, next);
 });
@@ -194,7 +194,9 @@ app.post("/api/global-analysis", async (req, res) => {
             });
         }
 
-        console.log(`[API] /api/global-analysis para usuário ${uid || "desconhecido"} (Premium: true)`);
+        console.log(
+            `[API] /api/global-analysis para usuário ${uid || "desconhecido"} (Premium: true)`
+        );
 
         const result = await interpretarSonhoIA(finalText, uid);
 
@@ -225,7 +227,9 @@ app.post("/api/interpretarSonho", async (req, res) => {
             });
         }
 
-        console.log(`[API] /api/interpretarSonho para usuário ${uid || "desconhecido"} (Premium: true)`);
+        console.log(
+            `[API] /api/interpretarSonho para usuário ${uid || "desconhecido"} (Premium: true)`
+        );
 
         const result = await interpretarSonhoIA(dreamText, uid);
 
@@ -254,7 +258,9 @@ app.post("/interpretarSonho", async (req, res) => {
             return res.status(400).json({ error: "Texto do sonho é obrigatório." });
         }
 
-        console.log(`[API] /interpretarSonho chamado para usuário ${uid || "desconhecido"} (Premium: true)`);
+        console.log(
+            `[API] /interpretarSonho chamado para usuário ${uid || "desconhecido"} (Premium: true)`
+        );
 
         const result = await interpretarSonhoIA(finalText, uid);
         return res.json(result);
@@ -278,7 +284,9 @@ app.post("/dreams/interpret", async (req, res) => {
             return res.status(400).json({ error: "Texto do sonho é obrigatório." });
         }
 
-        console.log(`[API] /dreams/interpret chamado para usuário ${uid || "desconhecido"} (Premium: true)`);
+        console.log(
+            `[API] /dreams/interpret chamado para usuário ${uid || "desconhecido"} (Premium: true)`
+        );
 
         const result = await interpretarSonhoIA(finalText, uid);
         return res.json(result);
