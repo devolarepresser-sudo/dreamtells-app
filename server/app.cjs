@@ -1,4 +1,6 @@
-/**
+console.log("BOOT VERSION: 2026-01-11 ROUTES FIX");
+
+/*
  * app.cjs — DreamTells Backend (Render-ready)
  * Correções principais:
  * - Adiciona GET / (health check)
