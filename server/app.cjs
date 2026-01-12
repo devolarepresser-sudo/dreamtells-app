@@ -1,4 +1,11 @@
 console.log("BOOT VERSION: 2026-01-11 ROUTES FIX");
+process.on("uncaughtException", (err) => {
+    console.error("[FATAL] uncaughtException:", err);
+});
+
+process.on("unhandledRejection", (reason) => {
+    console.error("[FATAL] unhandledRejection:", reason);
+});
 
 /*
  * app.cjs — DreamTells Backend (Render-ready)
