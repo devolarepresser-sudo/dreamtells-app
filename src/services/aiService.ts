@@ -4,6 +4,7 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
 const DEFAULT_PROD_API_BASE_URL = 'https://dreamtells-backend.onrender.com';
+const DEFAULT_STAGING_API_BASE_URL = 'https://dreamtells-staging.onrender.com'; // Criaremos este no Render
 
 // Render pode ter cold start + chamada IA pode demorar
 const DEFAULT_TIMEOUT_MS = 60000;
@@ -238,8 +239,18 @@ const resolveApiBaseUrl = (): string => {
 
     // @ts-ignore
     if (import.meta.env?.DEV) {
-        // Se estiver no browser (localhost) ou nativo, usa a mesma porta do servidor unificado
+        // Se estiver no Android Emulator, localhost nao funciona. 
+        // Precisa ser 10.0.2.2 para acessar a maquina host.
+        if (Capacitor.getPlatform() === 'android') {
+            return 'http://10.0.2.2:10000';
+        }
         return 'http://localhost:10000';
+    }
+
+    // Se estivermos compilando para Staging (através de uma env variable)
+    // @ts-ignore
+    if (import.meta.env?.VITE_STAGING_MODE === 'true') {
+        return DEFAULT_STAGING_API_BASE_URL;
     }
 
     return DEFAULT_PROD_API_BASE_URL;
