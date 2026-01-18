@@ -28,6 +28,9 @@ const LOCAL_ONLY_PROFILE = true;
 export interface DailyMessageData {
     date: string;
     message: string;
+    title?: string;
+    practice?: string;
+    archetype?: string;
 }
 
 interface AppContextType {

@@ -310,7 +310,7 @@ const analyzeLifeContextApi = async (
     return json.analysis || json.data?.analysis || 'Análise indisponível.';
 };
 
-const generateDailyMessageApi = async (userId: string): Promise<string> => {
+const generateDailyMessageApi = async (userId: string): Promise<any> => {
     const json = await fetchWithRetry<any>(
         DAILY_MESSAGE_API_URL,
         {
@@ -322,7 +322,7 @@ const generateDailyMessageApi = async (userId: string): Promise<string> => {
         1
     );
 
-    return json.message || json.data?.message || 'Mensagem indisponível.';
+    return json;
 };
 
 const interpretDreamStub = async (text: string): Promise<InterpretationResult> => {

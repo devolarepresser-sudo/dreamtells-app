@@ -31,14 +31,19 @@ const DailyMessage: React.FC = () => {
 
         try {
             const userId = user?.id || 'dev-guest';
-            const msg = await aiService.generateDailyMessage(userId); // <- isso retorna STRING
+            const response: any = await aiService.generateDailyMessage(userId); // <- Isso agora retorna o objeto data
+
+            const oracle = response.data || { reflection: response.message };
 
             // AQUI estava o erro: você fazia setDailyMessage(msg)
             // e depois esperava dailyMessage.date / dailyMessage.message.
             // Agora salvamos no formato que a tela realmente usa:
             setDailyMessage({
                 date: today,
-                message: msg,
+                message: oracle.reflection || response.message,
+                title: oracle.title,
+                practice: oracle.practice,
+                archetype: oracle.archetype
             });
         } catch (error) {
             console.error('[DailyMessage] Erro ao gerar mensagem:', error);
@@ -103,59 +108,118 @@ const DailyMessage: React.FC = () => {
                 {/* Conteúdo principal */}
                 {hasMessageToday && dailyMessage ? (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         className="card"
                         style={{
                             width: '100%',
                             textAlign: 'center',
                             padding: '32px 24px',
-                            background:
-                                'linear-gradient(135deg,#FFF 0%,#FFFBEB 100%)',
-                            border: '1px solid #F6E05E',
+                            background: 'rgba(15, 23, 42, 0.95)',
+                            border: '1px solid rgba(246, 224, 94, 0.4)',
                             borderRadius: 24,
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                            position: 'relative',
+                            overflow: 'hidden'
                         }}
                     >
+                        {/* Faixa do Arquétipo */}
+                        {dailyMessage.archetype && (
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                padding: '4px 0',
+                                background: 'linear-gradient(90deg, transparent, rgba(246, 224, 94, 0.2), transparent)',
+                                fontSize: '0.65rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: 2,
+                                color: '#F6E05E',
+                                fontWeight: 600
+                            }}>
+                                {dailyMessage.archetype}
+                            </div>
+                        )}
+
                         <h3
                             style={{
-                                fontSize: '1.2rem',
-                                color: '#D69E2E',
-                                marginBottom: 16,
+                                fontSize: '1.4rem',
+                                color: '#F6E05E',
+                                marginBottom: 20,
+                                marginTop: 12,
+                                fontWeight: 700,
+                                letterSpacing: -0.5
                             }}
                         >
-                            {t('daily_message_today') || 'Sua mensagem de hoje'}
+                            {dailyMessage.title || 'Sua Mensagem'}
                         </h3>
+
+                        <div style={{
+                            width: 40,
+                            height: 2,
+                            background: '#F6E05E',
+                            margin: '0 auto 24px',
+                            opacity: 0.5
+                        }} />
+
                         <p
                             style={{
-                                fontSize: '1.1rem',
-                                lineHeight: 1.6,
-                                color: '#744210',
-                                fontStyle: 'italic',
+                                fontSize: '1.05rem',
+                                lineHeight: 1.7,
+                                color: '#BFDBFE',
+                                marginBottom: 24,
+                                textAlign: 'justify'
                             }}
                         >
-                            "{dailyMessage.message}"
+                            {dailyMessage.message}
                         </p>
+
+                        {dailyMessage.practice && (
+                            <div style={{
+                                background: 'rgba(246, 224, 94, 0.05)',
+                                padding: '16px',
+                                borderRadius: 16,
+                                borderLeft: '3px solid #F6E05E',
+                                textAlign: 'left',
+                                marginBottom: 24
+                            }}>
+                                <span style={{
+                                    display: 'block',
+                                    fontSize: '0.75rem',
+                                    color: '#F6E05E',
+                                    fontWeight: 700,
+                                    marginBottom: 4,
+                                    textTransform: 'uppercase'
+                                }}>
+                                    Prática de Atenção Plena:
+                                </span>
+                                <p style={{ fontSize: '0.9rem', color: '#E5E7EB', lineHeight: 1.5 }}>
+                                    {dailyMessage.practice}
+                                </p>
+                            </div>
+                        )}
+
                         <button
                             onClick={() =>
                                 navigator.clipboard.writeText(
-                                    dailyMessage.message || ''
+                                    `${dailyMessage.title}\n\n${dailyMessage.message}\n\nPrática: ${dailyMessage.practice}` || ''
                                 )
                             }
                             style={{
-                                marginTop: 24,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 width: '100%',
-                                color: '#D69E2E',
+                                color: '#94A3B8',
                                 background: 'transparent',
                                 border: 'none',
                                 cursor: 'pointer',
-                                fontWeight: 600,
+                                fontSize: '0.85rem'
                             }}
                         >
-                            <Copy size={16} style={{ marginRight: 8 }} />{' '}
-                            {t('copy_success')}
+                            <Copy size={14} style={{ marginRight: 8 }} />{' '}
+                            Compartilhar Sabedoria
                         </button>
                     </motion.div>
                 ) : (
@@ -167,10 +231,9 @@ const DailyMessage: React.FC = () => {
                     >
                         <p
                             className="text-muted"
-                            style={{ marginBottom: 32, lineHeight: 1.6 }}
+                            style={{ marginBottom: 32, lineHeight: 1.6, color: '#94A3B8' }}
                         >
-                            Receba uma orientação positiva baseada nos seus sonhos
-                            recentes.
+                            Receba uma semente de sabedoria arquetípica para iluminar seu dia.
                         </p>
 
                         {error && (
