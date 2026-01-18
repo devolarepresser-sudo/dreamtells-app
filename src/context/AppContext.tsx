@@ -50,7 +50,7 @@ interface AppContextType {
     t: (key: keyof typeof pt) => string;
     upgradeToPremium: () => Promise<void>;
     dailyMessage: DailyMessageData | null;
-    setDailyMessage: (msg: string) => Promise<void>;
+    setDailyMessage: (msg: string | DailyMessageData) => Promise<void>;
     isLoading: boolean;
 
     canUsePremium: () => boolean;
@@ -349,11 +349,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const setDailyMessage = async (msg: string) => {
-        const data: DailyMessageData = {
-            date: new Date().toISOString().split('T')[0],
-            message: msg,
-        };
+    const setDailyMessage = async (msg: string | DailyMessageData) => {
+        const data: DailyMessageData = typeof msg === 'string'
+            ? {
+                date: new Date().toISOString().split('T')[0],
+                message: msg,
+            }
+            : msg;
         setDailyMessageState(data);
         await hybridStorage.setItem('dreamtells_daily_msg', JSON.stringify(data));
     };

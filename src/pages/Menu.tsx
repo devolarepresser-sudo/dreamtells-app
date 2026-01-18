@@ -1,7 +1,6 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
-import { useApp } from '../context/AppContext';
+import { Link, useNavigate } from "react-router-dom";
+import Layout from "../components/Layout";
+import { useApp } from "../context/AppContext";
 import {
     Home,
     Mic,
@@ -14,47 +13,63 @@ import {
     Lock,
     Sparkles,
     LogOut,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+    Sun,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
-const Menu: React.FC = () => {
+type MenuItem = {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    label: string;
+    path: string;
+    tileClass: string;
+    isPremiumTile?: boolean; // ✅ substitui premium
+};
+
+const Menu = () => {
     const { logout, user, t, canUsePremium } = useApp();
     const navigate = useNavigate();
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate("/login");
     };
 
     const hasAccess = canUsePremium();
 
-    const menuItems = [
-        { icon: Home, label: t('menu_home'), path: '/home', tileClass: 'menuIconTile-home' },
-        { icon: Mic, label: t('action_record'), path: '/record', tileClass: 'menuIconTile-audio' },
-        { icon: Sparkles, label: t('menu_interpretation') || 'Interpretação', path: '/interpretation', tileClass: 'menuIconTile-interpretation' },
-        { icon: BookOpen, label: t('action_history'), path: '/history', tileClass: 'menuIconTile-write' },
+    const menuItems: MenuItem[] = [
+        { icon: Home, label: t("menu_home"), path: "/home", tileClass: "menuIconTile-home" },
+        { icon: Mic, label: t("action_record"), path: "/record", tileClass: "menuIconTile-audio" },
+        {
+            icon: Sparkles,
+            label: t("menu_interpretation") || "Interpretação",
+            path: "/interpretation",
+            tileClass: "menuIconTile-interpretation",
+        },
+        { icon: Sun, label: t("menu_daily_message") || "Mensagem do Dia", path: "/daily-message", tileClass: "menuIconTile-daily" },
+        { icon: BookOpen, label: t("action_history"), path: "/history", tileClass: "menuIconTile-write" },
 
         // Premium features (unlocked)
-        { icon: Activity, label: t('menu_stats'), path: '/stats', tileClass: 'menuIconTile-insights' },
-        { icon: Book, label: t('menu_symbols'), path: '/symbols', tileClass: 'menuIconTile-symbols' },
+        { icon: Activity, label: t("menu_stats"), path: "/stats", tileClass: "menuIconTile-insights", isPremiumTile: true },
+        { icon: Book, label: t("menu_symbols"), path: "/symbols", tileClass: "menuIconTile-symbols", isPremiumTile: true },
 
         // Premium page (always visible)
-        { icon: Crown, label: t('menu_premium'), path: '/premium', tileClass: 'menuIconTile-premium', isPremiumTile: true },
+        { icon: Crown, label: t("menu_premium"), path: "/premium", tileClass: "menuIconTile-premium", isPremiumTile: true },
 
-        { icon: User, label: t('menu_profile'), path: '/profile', tileClass: 'menuIconTile-profile' },
-        { icon: Info, label: t('settings_about'), path: '/about', tileClass: 'menuIconTile-about' },
+        { icon: User, label: t("menu_profile"), path: "/profile", tileClass: "menuIconTile-profile" },
+        { icon: Info, label: t("settings_about"), path: "/about", tileClass: "menuIconTile-about" },
     ];
 
-    const handleItemClick = (e: React.MouseEvent, item: any) => {
-        if (item.premium && !hasAccess) {
+    const handleItemClick = (e: React.MouseEvent, item: MenuItem) => {
+        const isLocked = !!item.isPremiumTile && !hasAccess;
+        if (isLocked) {
             e.preventDefault();
-            navigate('/premium');
+            navigate("/premium");
         }
     };
 
     return (
         <Layout
-            title={t('menu_title')}
+            title={t("menu_title")}
             showBack={true}
             showMenu={false}
             icon={<Sparkles size={18} color="#F9FAFB" />}
@@ -104,6 +119,11 @@ const Menu: React.FC = () => {
             background: linear-gradient(135deg, #8B5CF6, #C4B5FD);
           }
 
+          .menuIconTile-daily{
+            background: linear-gradient(135deg, #F6E05E, #F6AD55);
+            box-shadow: 0 4px 12px rgba(246, 224, 94, 0.4);
+          }
+
           .menuIconTile-write{
             background: linear-gradient(135deg, #F97316, #FDBA74);
           }
@@ -133,25 +153,25 @@ const Menu: React.FC = () => {
 
             <div
                 style={{
-                    width: '100%',
+                    width: "100%",
                     maxWidth: 480,
-                    margin: '0 auto',
+                    margin: "0 auto",
                     marginTop: 8,
-                    background: 'transparent',   // ✅ garante que não existe “placa”
+                    background: "transparent",
                 }}
             >
                 {/* LISTA DE ITENS DE MENU */}
                 <div
                     style={{
-                        width: '100%',
+                        width: "100%",
                         maxWidth: 480,
-                        margin: '0 auto',
+                        margin: "0 auto",
                         marginTop: 8,
                     }}
                 >
-                    <div style={{ display: 'grid', gap: '12px' }}>
+                    <div style={{ display: "grid", gap: "12px" }}>
                         {menuItems.map((item, index) => {
-                            const isLocked = item.premium && !hasAccess;
+                            const isLocked = !!item.isPremiumTile && !hasAccess;
                             const isPremiumTile = !!item.isPremiumTile;
 
                             return (
@@ -162,11 +182,11 @@ const Menu: React.FC = () => {
                                     transition={{ delay: index * 0.04 }}
                                 >
                                     <Link
-                                        to={isLocked ? '#' : item.path}
+                                        to={isLocked ? "/premium" : item.path}
                                         className="menuButtonPremium"
                                         onClick={(e) => handleItemClick(e, item)}
                                         style={{
-                                            textDecoration: 'none',
+                                            textDecoration: "none",
                                             opacity: isLocked ? 0.85 : 1,
                                         }}
                                     >
@@ -176,7 +196,7 @@ const Menu: React.FC = () => {
                                             ) : (
                                                 <item.icon
                                                     size={20}
-                                                    className={isPremiumTile ? 'menuIconPremium' : 'menuIconDefault'}
+                                                    className={isPremiumTile ? "menuIconPremium" : "menuIconDefault"}
                                                 />
                                             )}
                                         </div>
@@ -185,13 +205,7 @@ const Menu: React.FC = () => {
                                             {item.label}
                                         </span>
 
-                                        {isLocked && (
-                                            <Crown
-                                                size={14}
-                                                color="#FACC15"
-                                                style={{ marginLeft: 8 }}
-                                            />
-                                        )}
+                                        {isLocked && <Crown size={14} color="#FACC15" style={{ marginLeft: 8 }} />}
                                     </Link>
                                 </motion.div>
                             );
@@ -206,27 +220,26 @@ const Menu: React.FC = () => {
                             transition={{ delay: 0.5 }}
                             onClick={handleLogout}
                             style={{
-                                width: '100%',
-                                padding: '14px 16px',
+                                width: "100%",
+                                padding: "14px 16px",
                                 marginTop: 32,
                                 borderRadius: 18,
-                                background:
-                                    'linear-gradient(135deg,#FCA5A5,#EF4444)',
-                                color: '#111827',
+                                background: "linear-gradient(135deg,#FCA5A5,#EF4444)",
+                                color: "#111827",
                                 fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                border: '1px solid rgba(254,202,202,0.95)',
-                                cursor: 'pointer',
-                                boxShadow:
-                                    '0 18px 40px rgba(248,113,113,0.5)',
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                border: "1px solid rgba(254,202,202,0.95)",
+                                cursor: "pointer",
+                                boxShadow: "0 18px 40px rgba(248,113,113,0.5)",
                             }}
+                            type="button"
                         >
                             <div className="menuIconTile menuIconTile-profile" style={{ marginRight: 12 }}>
                                 <LogOut size={20} className="menuIconDefault" />
                             </div>
-                            {t('menu_logout')}
+                            {t("menu_logout")}
                         </motion.button>
                     )}
                 </div>

@@ -15,7 +15,7 @@ import Stats from './pages/Stats';
 import Symbols from './pages/Symbols';
 import Menu from './pages/Menu';
 // import LifeContext from './pages/LifeContext';
-// import DailyMessage from './pages/DailyMessage';
+import DailyMessage from './pages/DailyMessage';
 import AboutTerms from './pages/AboutTerms';
 import Paywall from './components/Paywall';
 import Welcome from './pages/Welcome';
@@ -55,7 +55,7 @@ const App: React.FC = () => {
                         {/* Fallback para deep-analysis sem ID */}
                         <Route path="/deep-analysis" element={<Navigate to="/history" replace />} />
                         {/* <Route path="/life-context" element={<ProtectedRoute><LifeContext /></ProtectedRoute>} /> */}
-                        {/* <Route path="/daily-message" element={<ProtectedRoute><DailyMessage /></ProtectedRoute>} /> */}
+                        <Route path="/daily-message" element={<ProtectedRoute><DailyMessage /></ProtectedRoute>} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

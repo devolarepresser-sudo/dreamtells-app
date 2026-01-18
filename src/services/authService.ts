@@ -3,20 +3,59 @@ import {
     signInWithEmailAndPassword,
     signOut,
     updateProfile,
-    User as FirebaseUser,
     GoogleAuthProvider,
     signInWithCredential,
-    sendPasswordResetEmail
+    sendPasswordResetEmail,
 } from "firebase/auth";
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
-import { User, Plan } from "../types";
+import { User } from "../types";
+
+/**
+ * ✅ DEV / MASTER OVERRIDE
+ * - Se logar com email elepresser@gmail.com + senha 123456 => libera TUDO
+ * - Também libera para elepressar@gmail.com (variação que você já usava)
+ *
+ * Observação: senha hardcoded no front NÃO é segura em produção.
+ * Use isso só como atalho dev.
+ */
+const DEV_MASTER_EMAILS = ["elepresser@gmail.com", "elepressar@gmail.com"].map((e) =>
+    e.toLowerCase()
+);
+const DEV_MASTER_PASSWORD = "123456";
+const DEV_FORCE_PREMIUM_KEY = "devForcePremium";
+
+/** true quando deve liberar premium total */
+const shouldForcePremium = (email?: string | null, password?: string) => {
+    const e = (email ?? "").toLowerCase().trim();
+    if (!DEV_MASTER_EMAILS.includes(e)) return false;
+
+    // Para login com email/senha: exige senha 123456
+    if (typeof password === "string") return password === DEV_MASTER_PASSWORD;
+
+    // Para Google login (sem senha): libera se o email for da whitelist
+    return true;
+};
+
+/** aplica premium total no objeto user */
+const applyForcedPremium = (user: User): User => {
+    const patched: User = { ...user };
+
+    // usa string/any pra não brigar com union types do seu Plan
+    (patched as any).plan = "master";
+    patched.isPremium = true;
+    patched.isTrialActive = false;
+
+    return patched;
+};
 
 // Helper function to check trial expiration
 const checkTrialExpiration = (user: User): User => {
+    const plan = String((user as any).plan ?? "free");
+
     // Master users always have premium
-    if (user.plan === 'master') {
+    if (plan === "master") {
         user.isPremium = true;
         user.isTrialActive = false;
         return user;
@@ -30,14 +69,14 @@ const checkTrialExpiration = (user: User): User => {
         if (now > trialEndDate) {
             // Trial expired
             user.isTrialActive = false;
-            user.isPremium = user.plan === 'premium';
+            user.isPremium = plan === "premium";
         } else {
             // Trial still active
             user.isPremium = true;
         }
     } else {
         // No active trial, check plan
-        user.isPremium = user.plan === 'premium' || user.plan === 'master';
+        user.isPremium = plan === "premium";
     }
 
     return user;
@@ -54,26 +93,34 @@ export const authService = {
 
         await updateProfile(firebaseUser, { displayName: name });
 
-        // Create user document in Firestore with 7-day trial
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-        const newUser: User = {
+        const newUserBase: User = {
             id: firebaseUser.uid,
             name: name,
             email: email,
-            preferences: { language: 'pt', showQuotes: true }, // Default
-            plan: 'free',
+            preferences: { language: "pt", showQuotes: true },
+            plan: "free" as any,
             usage: { interpretationsCount: 0 },
             dreamsTodayCount: 0,
-            lastDreamDate: new Date().toISOString().split('T')[0],
+            lastDreamDate: new Date().toISOString().split("T")[0],
 
-            // 7-day Premium Trial
             trialStart: now.toISOString(),
             trialEnd: trialEnd.toISOString(),
             isTrialActive: true,
-            isPremium: true
+            isPremium: true,
         };
+
+        // ✅ Se registrar com seu email+senha dev, já vira master
+        const force = shouldForcePremium(email, password);
+        const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
+
+        if (force) {
+            try {
+                localStorage.setItem(DEV_FORCE_PREMIUM_KEY, "1");
+            } catch { }
+        }
 
         await setDoc(doc(db, "users", firebaseUser.uid), newUser);
         return newUser;
@@ -83,68 +130,82 @@ export const authService = {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
 
-        // Fetch user data from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const force = shouldForcePremium(email, password);
+        if (force) {
+            try {
+                localStorage.setItem(DEV_FORCE_PREMIUM_KEY, "1");
+            } catch { }
+        }
+
+        const userRef = doc(db, "users", firebaseUser.uid);
+        const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
             let userData = userDoc.data() as User;
 
-            // Master Access Check (Override plan if email matches)
-            const masterEmails = ['elepressar@gmail.com', 'elepresser@gmail.com'];
-            if (masterEmails.includes(email.toLowerCase())) {
-                if (userData.plan !== 'master') {
-                    await updateDoc(doc(db, "users", firebaseUser.uid), { plan: 'master' });
-                    userData.plan = 'master';
+            // ✅ Master override
+            if (force) {
+                // atualiza firestore só se não estiver master
+                if (String((userData as any).plan) !== "master") {
+                    await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
                 }
+                userData = applyForcedPremium(userData);
+                return userData;
             }
 
-            // Check trial expiration
+            // Normal flow
             userData = checkTrialExpiration(userData);
-
             return userData;
-        } else {
-            // Fallback if doc doesn't exist (shouldn't happen for new users, but maybe for old auths)
-            const masterEmails = ['elepressar@gmail.com', 'elepresser@gmail.com'];
-            // Fallback user creation with trial
-            const now = new Date();
-            const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-            const newUser: User = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || 'User',
-                email: email,
-                preferences: { language: 'pt', showQuotes: true },
-                plan: masterEmails.includes(email.toLowerCase()) ? 'master' : 'free',
-                usage: { interpretationsCount: 0 },
-                dreamsTodayCount: 0,
-                lastDreamDate: new Date().toISOString().split('T')[0],
-
-                // 7-day Premium Trial
-                trialStart: now.toISOString(),
-                trialEnd: trialEnd.toISOString(),
-                isTrialActive: !masterEmails.includes(email.toLowerCase()),
-                isPremium: true
-            };
-            await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-            return newUser;
         }
+
+        // Fallback se doc não existir
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const newUserBase: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || "User",
+            email: email,
+            preferences: { language: "pt", showQuotes: true },
+            plan: "free" as any,
+            usage: { interpretationsCount: 0 },
+            dreamsTodayCount: 0,
+            lastDreamDate: new Date().toISOString().split("T")[0],
+
+            trialStart: now.toISOString(),
+            trialEnd: trialEnd.toISOString(),
+            isTrialActive: true,
+            isPremium: true,
+        };
+
+        const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
+        await setDoc(userRef, newUser);
+        return newUser;
     },
 
     logout: async () => {
         await signOut(auth);
+        try {
+            localStorage.removeItem(DEV_FORCE_PREMIUM_KEY);
+        } catch { }
     },
 
     getUserData: async (uid: string): Promise<User | null> => {
         const userDoc = await getDoc(doc(db, "users", uid));
-        if (userDoc.exists()) {
-            let userData = userDoc.data() as User;
+        if (!userDoc.exists()) return null;
 
-            // Check trial expiration
-            userData = checkTrialExpiration(userData);
+        let userData = userDoc.data() as User;
 
-            return userData;
-        }
-        return null;
+        // ✅ Se a flag local estiver ativa, força premium também
+        try {
+            if (localStorage.getItem(DEV_FORCE_PREMIUM_KEY) === "1") {
+                userData = applyForcedPremium(userData);
+                return userData;
+            }
+        } catch { }
+
+        userData = checkTrialExpiration(userData);
+        return userData;
     },
 
     updateUser: async (user: User) => {
@@ -158,49 +219,54 @@ export const authService = {
         const userCredential = await signInWithCredential(auth, credential);
         const firebaseUser = userCredential.user;
 
-        // Fetch user data from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const email = (firebaseUser.email || "").toLowerCase();
+        const force = shouldForcePremium(email); // google não tem senha
+
+        if (force) {
+            try {
+                localStorage.setItem(DEV_FORCE_PREMIUM_KEY, "1");
+            } catch { }
+        }
+
+        const userRef = doc(db, "users", firebaseUser.uid);
+        const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
             let userData = userDoc.data() as User;
-            // Master Access Check (Override plan if email matches)
-            const masterEmails = ['elepressar@gmail.com', 'elepresser@gmail.com'];
-            if (firebaseUser.email && masterEmails.includes(firebaseUser.email.toLowerCase())) {
-                if (userData.plan !== 'master') {
-                    await updateDoc(doc(db, "users", firebaseUser.uid), { plan: 'master' });
-                    userData.plan = 'master';
+
+            if (force) {
+                if (String((userData as any).plan) !== "master") {
+                    await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
                 }
+                userData = applyForcedPremium(userData);
+                return userData;
             }
 
-            // Check trial expiration
             userData = checkTrialExpiration(userData);
             return userData;
-        } else {
-            // New User via Google
-            const masterEmails = ['elepressar@gmail.com', 'elepresser@gmail.com'];
-            const email = firebaseUser.email || '';
-
-            const now = new Date();
-            const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-            const newUser: User = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || 'User',
-                email: email,
-                preferences: { language: 'pt', showQuotes: true },
-                plan: masterEmails.includes(email.toLowerCase()) ? 'master' : 'free',
-                usage: { interpretationsCount: 0 },
-                dreamsTodayCount: 0,
-                lastDreamDate: new Date().toISOString().split('T')[0],
-
-                // 7-day Premium Trial
-                trialStart: now.toISOString(),
-                trialEnd: trialEnd.toISOString(),
-                isTrialActive: !masterEmails.includes(email.toLowerCase()),
-                isPremium: true
-            };
-            await setDoc(doc(db, "users", firebaseUser.uid), newUser);
-            return newUser;
         }
-    }
+
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        const newUserBase: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || "User",
+            email: firebaseUser.email || "",
+            preferences: { language: "pt", showQuotes: true },
+            plan: "free" as any,
+            usage: { interpretationsCount: 0 },
+            dreamsTodayCount: 0,
+            lastDreamDate: new Date().toISOString().split("T")[0],
+
+            trialStart: now.toISOString(),
+            trialEnd: trialEnd.toISOString(),
+            isTrialActive: true,
+            isPremium: true,
+        };
+
+        const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
+        await setDoc(userRef, newUser);
+        return newUser;
+    },
 };

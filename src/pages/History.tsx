@@ -7,7 +7,7 @@ import { Calendar, ChevronRight, Trash2, Heart, Search, BookOpen } from 'lucide-
 import { DreamEntry } from '../types';
 
 const History: React.FC = () => {
-    const { dreams, t, clearDreams, toggleFavorite } = useApp();
+    const { dreams, t, clearDreams, deleteDream, toggleFavorite } = useApp();
     const navigate = useNavigate();
     const [filter, setFilter] = useState<'all' | 'favorites'>('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -366,6 +366,28 @@ const History: React.FC = () => {
                                         fill={dream.isFavorite ? '#F87171' : 'none'}
                                         color={dream.isFavorite ? '#F87171' : '#64748B'}
                                     />
+                                </button>
+
+                                {/* Botão Excluir Individual */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm("Deseja apagar este sonho permanentemente?")) {
+                                            deleteDream(dream.id);
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 10,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginLeft: 2,
+                                    }}
+                                >
+                                    <Trash2 size={18} color="#94A3B8" />
                                 </button>
 
                                 <ChevronRight

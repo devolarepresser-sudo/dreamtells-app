@@ -93,10 +93,10 @@ const RecordDream: React.FC = () => {
                 try { await SpeechRecognition.removeAllListeners(); } catch { }
 
                 // ✅ Preview (tempo real)
-                SpeechRecognition.addListener('partialResults', (data: any) => {
+                SpeechRecognition.addListener("partialResults", (data) => {
                     if (!acceptingRef.current) return;
 
-                    const text = normalize(pickBest(data?.matches || []));
+                    const text = data.matches?.[0] ?? "";
                     if (!text) return;
 
                     // NÃO sobrescreve o finalAccum: só preview
@@ -105,10 +105,10 @@ const RecordDream: React.FC = () => {
                 });
 
                 // ✅ Resultado final (mais estável que partial)
-                SpeechRecognition.addListener('result', (data: any) => {
+                SpeechRecognition.addListener("partialResults", (data) => {
                     if (!acceptingRef.current) return;
 
-                    const text = normalize(pickBest(data?.matches || []));
+                    const text = data.matches?.[0] ?? "";
                     if (!text) return;
 
                     const fa = normalize(finalAccumRef.current);
@@ -357,7 +357,8 @@ const RecordDream: React.FC = () => {
             });
         } catch (err) {
             console.error(err);
-            alert(`Erro ao interpretar: ${err?.message || err}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            alert(`Erro ao interpretar: ${msg}`);
 
         } finally {
             setIsAnalyzing(false);

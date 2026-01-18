@@ -75,9 +75,34 @@ app.get("/healthz", (req, res) => {
 // =========================
 // Prompts & Logic
 // =========================
-const SYSTEM_PROMPT = `Você é o interpretador oficial do aplicativo DreamTells, utilizando o Método de Interpretação Profunda DreamTells (D.D.I.P.). 
-Seu papel é criar interpretações de sonhos ricas e estruturadas.
-Retorne APENAS formato JSON obrigatório:
+
+// ✅ Normaliza idioma (backend)
+function normalizeLang(lang) {
+    const raw = String(lang || "pt").toLowerCase().trim();
+    if (raw.startsWith("pt")) return "pt";
+    if (raw.startsWith("es")) return "es";
+    if (raw.startsWith("en")) return "en";
+    if (raw.startsWith("fr")) return "fr";
+    if (raw.startsWith("it")) return "it";
+    if (raw.startsWith("de")) return "de";
+    return "pt";
+}
+
+// ✅ PROMPT PROFUNDO (mantém JSON obrigatório)
+const SYSTEM_PROMPT = `Você é o interpretador oficial do aplicativo DreamTells, usando o Método de Interpretação Profunda DreamTells (D.D.I.P.).
+
+OBJETIVO: produzir uma interpretação PROFUNDA, humana e memorável — não genérica — mantendo linguagem clara e prática (sem misticismo gratuito).
+Você deve extrair camadas do sonho e conectar com emoções, conflitos internos e vida real, de forma terapêutica e responsável.
+
+REGRAS DE PROFUNDIDADE (obrigatórias):
+1) Sempre identifique: (a) TEMA CENTRAL do sonho, (b) EMOÇÃO dominante, (c) CONFLITO interno (ex.: liberdade x responsabilidade; desejo x medo; expansão x controle), (d) DIREÇÃO prática.
+2) Use uma camada simbólica com metáforas humanas e arquétipos quando fizer sentido (ex.: herói, criança interior, explorador, sábio). Não use jargão pesado — explique de forma acessível.
+3) Conecte com vida real: hábitos, decisões, relações, trabalho, autoestima, limites, propósito. Evite “frases prontas”.
+4) Seja específico: aponte 2–3 possibilidades concretas do que isso pode refletir na vida do usuário (em forma de hipóteses), sem afirmar diagnósticos.
+5) O texto NÃO pode ser curto: interpretação principal precisa ter corpo (mínimo ~900 caracteres em pt/es, ~700 em en). 
+6) Conselho: 3 ações práticas, pequenas, realistas (24–48h) + 1 pergunta de reflexão.
+
+FORMATO: Retorne APENAS JSON válido (sem markdown), exatamente com este schema:
 {
   "dreamTitle": "...",
   "interpretationMain": "...",
@@ -88,6 +113,14 @@ Retorne APENAS formato JSON obrigatório:
   "tags": [],
   "language": "pt"
 }
+
+IMPORTANTE:
+- "interpretationMain" deve ser em parágrafos (texto corrido), com profundidade emocional e simbólica.
+- "symbols": 3 a 6 itens, cada um com meaning específico (não genérico).
+- "emotions": 4 a 8 emoções possíveis (strings).
+- "lifeAreas": 3 a 6 áreas (ex.: "Relacionamentos", "Trabalho", "Autoestima", "Espiritualidade", "Propósito", "Família", "Saúde").
+- "tags": 6 a 10 tags curtas.
+- "language": deve respeitar o idioma solicitado (pt/es/en/fr/it/de).
 `;
 
 const GLOBAL_ANALYSIS_PROMPT = `Você é um Analista Arquetípico.
@@ -105,6 +138,14 @@ Retorne APENAS JSON:
   "language": "pt"
 }
 `;
+
+const DAILY_MESSAGE_PROMPT = `Você é um mentor de sabedoria e autoconhecimento.
+Sua missão é gerar uma "Mensagem do Dia" curta (máximo 3 parágrafos pequenos), inspiradora e profunda.
+Baseie-se na ideia de que hoje é uma nova oportunidade de integração entre o consciente e o inconsciente.
+Se houver sonhos no histórico, use-os como base de sabedoria, mas mantenha a mensagem encorajadora para o presente.
+Se não houver sonhos, gere uma mensagem universal de despertar e presença.
+
+Retorne APENAS o texto da mensagem, sem JSON ou markdown.`;
 
 function getModel() {
     return process.env.OPENAI_MODEL || "gpt-4o";
@@ -146,6 +187,9 @@ async function callOpenAIText({ systemPrompt, userPrompt, model }) {
 
     const finalModel = model || getModel();
 
+    // ✅ parâmetros pra evitar resposta curta/genérica (sem quebrar nada)
+    const temperature = 0.85;
+
     // Compatibilidade com diferentes versões do SDK
     // 1. Responses API (Beta/Novo)
     if (client.responses && typeof client.responses.create === "function") {
@@ -155,6 +199,9 @@ async function callOpenAIText({ systemPrompt, userPrompt, model }) {
                 { role: "system", content: [{ type: "input_text", text: systemPrompt }] },
                 { role: "user", content: [{ type: "input_text", text: userPrompt }] },
             ],
+            temperature,
+            // respostas longas e completas
+            max_output_tokens: 900,
         });
         return response.output_text || response.output?.[0]?.content?.[0]?.text || "";
     }
@@ -163,6 +210,8 @@ async function callOpenAIText({ systemPrompt, userPrompt, model }) {
     if (client.chat && client.chat.completions && typeof client.chat.completions.create === "function") {
         const response = await client.chat.completions.create({
             model: finalModel,
+            temperature,
+            max_tokens: 900,
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
@@ -177,13 +226,20 @@ async function callOpenAIText({ systemPrompt, userPrompt, model }) {
 // =========================
 // Funções de Negócio
 // =========================
-async function interpretarSonhoIA(textoSonho, uid) {
+async function interpretarSonhoIA(textoSonho, uid, language = "pt") {
+    const lang = normalizeLang(language);
+
     const raw = await callOpenAIText({
         systemPrompt: SYSTEM_PROMPT,
-        userPrompt: `Usuário PREMIUM (ID: ${uid || "desconhecido"}) enviou: ${textoSonho}`,
+        userPrompt: `IDIOMA_SOLICITADO: ${lang}
+Usuário PREMIUM (ID: ${uid || "desconhecido"}) enviou o sonho:
+"""${textoSonho}"""
+
+INSTRUÇÃO: responda no idioma solicitado e preencha o JSON completo, com interpretação profunda (não genérica).`,
     });
+
     const result = parseJsonSafely(raw);
-    if (!result.language) result.language = "pt";
+    if (!result.language) result.language = lang;
     return result;
 }
 
@@ -220,7 +276,7 @@ app.post("/api/global-analysis", async (req, res) => {
         const text = body.dreamText || body.text || body.dream || body.sonho;
         if (!text) return res.status(400).json({ success: false, error: "Texto obrigatório." });
 
-        const result = await interpretarSonhoIA(text, body.uid || body.userId);
+        const result = await interpretarSonhoIA(text, body.uid || body.userId, body.language);
         return res.json({ success: true, data: result });
 
     } catch (error) {
@@ -240,7 +296,9 @@ const interpretHandler = async (req, res) => {
         const text = body.dreamText || body.text;
         if (!text) return res.status(400).json({ error: "Texto obrigatório." });
 
-        const result = await interpretarSonhoIA(text, body.uid);
+        // ✅ agora respeita language do app
+        const result = await interpretarSonhoIA(text, body.uid, body.language);
+
         return req.path.includes("/api/")
             ? res.json({ success: true, data: result })
             : res.json(result);
@@ -254,6 +312,62 @@ const interpretHandler = async (req, res) => {
 app.post("/api/interpretarSonho", interpretHandler);
 app.post("/interpretarSonho", interpretHandler);
 app.post("/dreams/interpret", interpretHandler);
+// Endpoints adicionais
+app.post("/api/emotional-diagnosis", async (req, res) => {
+    try {
+        const body = req.body || {};
+
+        const raw = await callOpenAIText({
+            systemPrompt: `
+Você é um analista emocional do app DreamTells.
+Gere um DIAGNÓSTICO EMOCIONAL diário com base:
+- nos sonhos (se houver)
+- no que a pessoa escreveu hoje
+- nos padrões emocionais confirmados por ela
+
+RETORNE APENAS JSON:
+{
+  "title": "...",
+  "summary": "...",
+  "whyThisAppears": "...",
+  "direction": ["...", "...", "..."],
+  "reflectionQuestion": "...",
+  "hookTomorrow": "...",
+  "language": "pt"
+}
+`,
+            userPrompt: JSON.stringify(body),
+        });
+
+        const result = parseJsonSafely(raw);
+        return res.json({ success: true, data: result });
+
+    } catch (error) {
+        console.error("[EMOTIONAL DIAG ERROR]", error.message);
+        return res.status(500).json({
+            success: false,
+            error: error.message || "Erro ao gerar diagnóstico emocional."
+        });
+    }
+});
+
+app.post("/api/daily-message", async (req, res) => {
+    try {
+        const body = req.body || {};
+        const dreams = body.dreams || [];
+        const language = body.language || "pt";
+
+        const raw = await callOpenAIText({
+            systemPrompt: DAILY_MESSAGE_PROMPT,
+            userPrompt: `IDIOMA: ${language}\nHISTÓRICO_SONHOS: ${JSON.stringify(dreams)}`,
+        });
+
+        return res.json({ success: true, message: raw.trim() });
+    } catch (error) {
+        console.error("[API Error /api/daily-message]", error.message);
+        res.status(500).json({ success: false, error: "Erro ao gerar mensagem." });
+    }
+});
 
 // 404 Fallback
 app.use((req, res) => {

@@ -1,3 +1,4 @@
+import type { Variants } from "framer-motion";
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -7,18 +8,18 @@ import { useApp } from '../context/AppContext';
 
 import { FREE_DEV_MODE } from '../config/featureFlags';
 
-const containerVariants = {
+const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
             staggerChildren: 0.15,
-            delayChildren: 0.1
-        }
-    }
+            delayChildren: 0.1,
+        },
+    },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
         opacity: 1,
@@ -26,9 +27,9 @@ const itemVariants = {
         transition: {
             type: "spring",
             stiffness: 70,
-            damping: 15
-        }
-    }
+            damping: 15,
+        },
+    },
 };
 
 const Home: React.FC = () => {

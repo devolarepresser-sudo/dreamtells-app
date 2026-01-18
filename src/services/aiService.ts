@@ -70,6 +70,31 @@ const normalizeDeepQuestionsTo3 = (questions: string[] | undefined, language: La
     return build3AnchorQuestions(language, dreamText);
 };
 
+const generateEmotionalDiagnosisApi = async (payload: any): Promise<any> => {
+    const safeLanguage = normalizeLangForBackend(payload?.language);
+
+    const json = await fetchWithRetry<any>(
+        EMOTIONAL_DIAG_API_URL,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...payload,
+                language: safeLanguage,
+            }),
+        },
+        DEFAULT_TIMEOUT_MS,
+        1
+    );
+
+    // Aceita vários formatos comuns de resposta
+    if (json?.success === false) {
+        throw new Error(json?.error || 'Falha ao gerar diagnóstico.');
+    }
+
+    return json?.data ?? json?.analysis ?? json;
+};
+
 const fetchJsonWithTimeout = async <T = any>(
     url: string,
     options: RequestInit,
@@ -213,9 +238,8 @@ const resolveApiBaseUrl = (): string => {
 
     // @ts-ignore
     if (import.meta.env?.DEV) {
-        const isNative = Capacitor.isNativePlatform();
-        if (isNative) return DEFAULT_PROD_API_BASE_URL;
-        return 'http://localhost:3001';
+        // Se estiver no browser (localhost) ou nativo, usa a mesma porta do servidor unificado
+        return 'http://localhost:10000';
     }
 
     return DEFAULT_PROD_API_BASE_URL;
@@ -236,6 +260,7 @@ const SYMBOL_API_URL = `${API_BASE_URL}/api/analyze-symbol`;
 const DEEP_ANALYSIS_API_URL = `${API_BASE_URL}/api/analyze-deep`;
 const DEEP_QUESTIONS_API_URL = `${API_BASE_URL}/api/deep-questions`;
 const GLOBAL_ANALYSIS_API_URL = `${API_BASE_URL}/api/global-analysis`;
+const EMOTIONAL_DIAG_API_URL = `${API_BASE_URL}/api/emotional-diagnosis`;
 
 // ✅ Prewarm para reduzir cold start do Render (não quebra nada se falhar)
 const prewarmBackend = async (): Promise<void> => {
@@ -551,6 +576,10 @@ export const aiService = {
             console.error('[DAILY MESSAGE ERROR]', error);
             return 'Hoje é um convite para você dar um pequeno passo na direção da vida que deseja.';
         }
+    },
+
+    generateEmotionalDiagnosis: async (payload: any): Promise<any> => {
+        return await generateEmotionalDiagnosisApi(payload);
     },
 
     analyzeSymbol: async (symbol: string, userId: string = 'dev-guest'): Promise<string> => {

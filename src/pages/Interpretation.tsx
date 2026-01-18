@@ -1,5 +1,6 @@
 // src/pages/Interpretation.tsx
 
+import type { Variants } from "framer-motion";
 import React, { useMemo, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -156,28 +157,28 @@ const buildInterpretationView = (dream?: DreamEntry): InterpretationView | null 
 };
 
 // Animação de container (stagger) e items (fade/slide)
-const containerVariants = {
+const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.35, // Delay entre cada bloco para efeito "reading"
-            delayChildren: 0.1
-        }
-    }
+            staggerChildren: 0.35,
+            delayChildren: 0.1,
+        },
+    },
 };
 
-const itemVariants = {
-    hidden: { opacity: 0, y: 30 }, // Começa um pouco mais abaixo
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
     visible: {
         opacity: 1,
         y: 0,
         transition: {
             type: "spring",
             stiffness: 50,
-            damping: 15
-        }
-    }
+            damping: 15,
+        },
+    },
 };
 
 const Interpretation: React.FC = () => {
