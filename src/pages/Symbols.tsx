@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
+
 import { aiService } from '../services/aiService';
+import { hybridStorage } from '../services/hybridStorage';
 import { Search, Bookmark, Sparkles, X, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -64,10 +66,23 @@ const Symbols: React.FC = () => {
         setIsLoadingAnalysis(true);
 
         try {
+            // 1. Tenta pegar do cache local primeiro
+            const cachedDefs = await hybridStorage.getSymbolDefinitions();
+            const normalizedKey = symbol.name.toLowerCase();
+
+            if (cachedDefs[normalizedKey]) {
+                setAiAnalysis(cachedDefs[normalizedKey]);
+                return; // Encerra aqui, não chama IA
+            }
+
+            // 2. Se não tiver no cache, chama a IA
             const userId = user?.id || 'guest';
-            // Chama a IA para explicar o símbolo
             const analysis = await aiService.analyzeSymbol(symbol.name, userId);
+
             setAiAnalysis(analysis);
+
+            // 3. Salva no cache
+            await hybridStorage.saveSymbolDefinition(symbol.name, analysis);
         } catch (error) {
             console.error(error);
             setAiAnalysis('Não foi possível analisar este símbolo no momento.');

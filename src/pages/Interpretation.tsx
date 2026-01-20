@@ -7,7 +7,7 @@ import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { DreamEntry } from '../types';
 import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 type AnyObj = Record<string, any>;
 
@@ -20,8 +20,26 @@ interface InterpretationView {
     advice: string;
     symbols: { name: string; meaning?: string }[];
     emotions: string[];
-
     lifeAreas: string[];
+
+    // New Expert-Level Fields
+    coreOfDream?: string;
+    evidence?: string[];
+    decodingLayers?: {
+        emotional?: string;
+        relational?: string;
+        archetypal?: string;
+        individuation?: string;
+    };
+    alternativeHypotheses?: string[];
+    criticalPoint?: string;
+    practicalDirection?: {
+        minimalAction?: string;
+        integrationExercise?: string;
+        anchorPhrase?: string;
+    };
+    responsibleAlert?: string;
+
     deepAnalysis?: {
         deepInsights: { title: string; content: string }[];
         patterns: string[];
@@ -150,8 +168,17 @@ const buildInterpretationView = (dream?: DreamEntry): InterpretationView | null 
         advice,
         symbols,
         emotions,
-
         lifeAreas,
+
+        // New Expert Fields
+        coreOfDream: node.coreOfDream,
+        evidence: Array.isArray(node.evidence) ? node.evidence : undefined,
+        decodingLayers: node.decodingLayers,
+        alternativeHypotheses: Array.isArray(node.alternativeHypotheses) ? node.alternativeHypotheses : undefined,
+        criticalPoint: node.criticalPoint,
+        practicalDirection: node.practicalDirection,
+        responsibleAlert: node.responsibleAlert,
+
         deepAnalysis: dream.deepAnalysis,
     };
 };
@@ -182,7 +209,7 @@ const itemVariants: Variants = {
 };
 
 const Interpretation: React.FC = () => {
-    const { dreams } = useApp();
+    const { dreams, t } = useApp();
     const navigate = useNavigate();
     const location = useLocation() as { state?: { dreamId?: string; dream?: DreamEntry } };
 
@@ -681,6 +708,161 @@ const Interpretation: React.FC = () => {
                                     </p>
                                 </motion.div>
                             )}
+
+                            {/* ========== NOVOS BLOCOS ESPECIALISTA ========== */}
+
+                            {/* Alerta Responsável */}
+                            {view.responsibleAlert && (
+                                <motion.div
+                                    variants={itemVariants}
+                                    style={{
+                                        padding: 18,
+                                        borderRadius: 18,
+                                        background: '#FEF2F2',
+                                        borderLeft: '4px solid #EF4444',
+                                        marginBottom: 20,
+                                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)'
+                                    }}
+                                >
+                                    <h3 style={{ fontSize: '0.85rem', color: '#B91C1C', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 700 }}>
+                                        ⚠️ {t('interp_responsible_alert')}
+                                    </h3>
+                                    <p style={{ color: '#7F1D1D', lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-line', margin: 0 }}>
+                                        {view.responsibleAlert}
+                                    </p>
+                                </motion.div>
+                            )}
+
+                            {/* Núcleo do Sonho */}
+                            {view.coreOfDream && (
+                                <motion.div
+                                    variants={itemVariants}
+                                    style={{
+                                        padding: 18,
+                                        borderRadius: 18,
+                                        background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                                        marginBottom: 14,
+                                        boxShadow: '0 8px 24px rgba(79, 70, 229, 0.3)'
+                                    }}
+                                >
+                                    <h3 style={{ fontSize: '0.85rem', color: '#E0E7FF', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 10, fontWeight: 800 }}>
+                                        🎯 {t('interp_core_dream')}
+                                    </h3>
+                                    <p style={{ color: '#FFFFFF', lineHeight: 1.7, fontSize: '1rem', fontWeight: 500, whiteSpace: 'pre-line' }}>
+                                        {view.coreOfDream}
+                                    </p>
+                                </motion.div>
+                            )}
+
+                            {/* Evidências */}
+                            {view.evidence && view.evidence.length > 0 && (
+                                <motion.div variants={itemVariants} style={{ padding: 16, borderRadius: 18, background: '#F8FAFC', border: '1px solid rgba(100, 116, 139, 0.3)', marginBottom: 14 }}>
+                                    <h3 style={{ fontSize: '0.8rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10, fontWeight: 600 }}>
+                                        📋 {t('interp_evidence')}
+                                    </h3>
+                                    <ul style={{ margin: 0, paddingLeft: 20, color: '#1E293B', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                                        {view.evidence.map((ev, idx) => (
+                                            <li key={idx} style={{ marginBottom: 6 }}>{ev}</li>
+                                        ))}
+                                    </ul>
+                                </motion.div>
+                            )}
+
+                            {/* Decodificação em Camadas */}
+                            {view.decodingLayers && (
+                                <motion.div variants={itemVariants} style={{ padding: 18, borderRadius: 18, background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)', border: '1px solid rgba(148, 163, 184, 0.3)', marginBottom: 14 }}>
+                                    <h3 style={{ fontSize: '0.85rem', color: '#A5B4FC', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 16, fontWeight: 700 }}>
+                                        🔍 {t('interp_decoding')}
+                                    </h3>
+
+                                    {view.decodingLayers.emotional && (
+                                        <div style={{ marginBottom: 14 }}>
+                                            <h4 style={{ color: '#FDE68A', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>💛 {t('interp_layer_emotional')}</h4>
+                                            <p style={{ color: '#E0E7FF', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.decodingLayers.emotional}</p>
+                                        </div>
+                                    )}
+
+                                    {view.decodingLayers.relational && (
+                                        <div style={{ marginBottom: 14 }}>
+                                            <h4 style={{ color: '#FBCFE8', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>❤️ {t('interp_layer_relational')}</h4>
+                                            <p style={{ color: '#E0E7FF', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.decodingLayers.relational}</p>
+                                        </div>
+                                    )}
+
+                                    {view.decodingLayers.archetypal && (
+                                        <div style={{ marginBottom: 14 }}>
+                                            <h4 style={{ color: '#A7F3D0', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>🌀 {t('interp_layer_archetypal')}</h4>
+                                            <p style={{ color: '#E0E7FF', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.decodingLayers.archetypal}</p>
+                                        </div>
+                                    )}
+
+                                    {view.decodingLayers.individuation && (
+                                        <div>
+                                            <h4 style={{ color: '#CFFAFE', fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>⭐ {t('interp_layer_individuation')}</h4>
+                                            <p style={{ color: '#E0E7FF', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.decodingLayers.individuation}</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {/* Ponto Crítico */}
+                            {view.criticalPoint && (
+                                <motion.div variants={itemVariants} style={{ padding: 16, borderRadius: 18, background: '#FFFBEB', borderLeft: '4px solid #F59E0B', marginBottom: 14 }}>
+                                    <h3 style={{ fontSize: '0.8rem', color: '#92400E', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 700 }}>
+                                        ⚡ {t('interp_critical_point')}
+                                    </h3>
+                                    <p style={{ color: '#78350F', lineHeight: 1.6, fontSize: '1rem', fontWeight: 600, fontStyle: 'italic', margin: 0 }}>
+                                        {view.criticalPoint}
+                                    </p>
+                                </motion.div>
+                            )}
+
+                            {/* Direção Prática */}
+                            {view.practicalDirection && (
+                                <motion.div variants={itemVariants} style={{ padding: 18, borderRadius: 18, background: '#ECFDF5', border: '1px solid rgba(16, 185, 129, 0.3)', marginBottom: 14 }}>
+                                    <h3 style={{ fontSize: '0.85rem', color: '#047857', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 14, fontWeight: 700 }}>
+                                        🎯 {t('interp_practical_direction')}
+                                    </h3>
+
+                                    {view.practicalDirection.minimalAction && (
+                                        <div style={{ marginBottom: 12, padding: 12, background: 'rgba(16, 185, 129, 0.05)', borderRadius: 12 }}>
+                                            <h4 style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>✅ {t('interp_minimal_action')}</h4>
+                                            <p style={{ color: '#064E3B', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.practicalDirection.minimalAction}</p>
+                                        </div>
+                                    )}
+
+                                    {view.practicalDirection.integrationExercise && (
+                                        <div style={{ marginBottom: 12, padding: 12, background: 'rgba(16, 185, 129, 0.05)', borderRadius: 12 }}>
+                                            <h4 style={{ color: '#059669', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>🧘 {t('interp_integration_exercise')}</h4>
+                                            <p style={{ color: '#064E3B', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>{view.practicalDirection.integrationExercise}</p>
+                                        </div>
+                                    )}
+
+                                    {view.practicalDirection.anchorPhrase && (
+                                        <div style={{ padding: 14, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', borderRadius: 12 }}>
+                                            <h4 style={{ color: '#D1FAE5', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6, textAlign: 'center' }}>💬 {t('interp_anchor_phrase')}</h4>
+                                            <p style={{ color: '#FFFFFF', fontSize: '1rem', lineHeight: 1.6, margin: 0, fontWeight: 600, textAlign: 'center', fontStyle: 'italic' }}>
+                                                "{view.practicalDirection.anchorPhrase}"
+                                            </p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {/* Hipóteses Alternativas */}
+                            {view.alternativeHypotheses && view.alternativeHypotheses.length > 0 && (
+                                <motion.div variants={itemVariants} style={{ padding: 16, borderRadius: 18, background: '#FDF4FF', border: '1px solid rgba(168, 85, 247, 0.3)', marginBottom: 14 }}>
+                                    <h3 style={{ fontSize: '0.8rem', color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10, fontWeight: 600 }}>
+                                        🔀 {t('interp_alternative_hypotheses')}
+                                    </h3>
+                                    <ul style={{ margin: 0, paddingLeft: 20, color: '#581C87', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                                        {view.alternativeHypotheses.map((hyp, idx) => (
+                                            <li key={idx} style={{ marginBottom: 8 }}>{hyp}</li>
+                                        ))}
+                                    </ul>
+                                </motion.div>
+                            )}
+
                             {/* Bloco de Análise Profunda (Shadow Work) */}
                             {view.deepAnalysis && (
                                 <motion.div

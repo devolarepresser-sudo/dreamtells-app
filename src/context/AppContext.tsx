@@ -6,7 +6,6 @@ import {
     ReactNode,
 } from 'react';
 import { User, DreamEntry, Language, Plan } from '../types';
-import { storageService } from '../services/storageService';
 import { authService } from '../services/authService';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -21,8 +20,7 @@ import { hybridStorage } from '../services/hybridStorage';
 
 const locales = { pt, es, en, fr, it, de };
 
-// ✅ Sem nuvem para sonhos/perfil por enquanto (só login online)
-const LOCAL_ONLY_DREAMS = true;
+// ✅ Sem nuvem para perfil por enquanto (só login online)
 const LOCAL_ONLY_PROFILE = true;
 
 export interface DailyMessageData {
@@ -50,7 +48,7 @@ interface AppContextType {
     deleteDream: (id: string) => Promise<void>;
     updateDream: (id: string, data: Partial<DreamEntry>) => Promise<void>;
     clearDreams: () => Promise<void>;
-    t: (key: keyof typeof pt) => string;
+    t: (key: keyof typeof pt, params?: Record<string, string | number>) => string;
     upgradeToPremium: () => Promise<void>;
     dailyMessage: DailyMessageData | null;
     setDailyMessage: (msg: string | DailyMessageData) => Promise<void>;
@@ -76,27 +74,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Inicialização geral
     useEffect(() => {
         const initialize = async () => {
-            // Idioma
-            const storedLang = (await storageService.getLanguage()) as Language;
-            if (storedLang) setLanguageState(storedLang);
-
-            // Mensagem diária
-            const storedMsg = await hybridStorage.getItem('dreamtells_daily_msg');
-            if (storedMsg) {
-                try {
-                    setDailyMessageState(JSON.parse(storedMsg));
-                } catch { }
-            }
-
-            // Carrega sonhos GUEST no boot (evita tela vazia antes do auth)
             try {
-                // @ts-ignore - depende do storageService com ForUser
-                const guestDreams = await storageService.getDreamsForUser('guest');
+                // Idioma
+                const storedLang = (await hybridStorage.getLanguage()) as Language;
+                if (storedLang) setLanguageState(storedLang);
+
+                // Mensagem diária
+                const storedMsg = await hybridStorage.getItem('dreamtells_daily_msg');
+                if (storedMsg) {
+                    try {
+                        setDailyMessageState(JSON.parse(storedMsg));
+                    } catch { }
+                }
+
+                // Carrega sonhos GUEST inicialmente
+                const guestDreams = await hybridStorage.getDreamsForUser('guest');
                 setDreams(guestDreams);
-                console.log(`[HISTORY] Initial guest cache load: ${guestDreams.length} dreams.`);
-            } catch (e) {
-                console.warn('[HISTORY] Failed to load guest dreams:', e);
-                setDreams([]);
+            } catch (error) {
+                console.error('[AppContext] Initialization error:', error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -104,72 +101,50 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             (async () => {
+                setIsLoading(true);
                 try {
-                    setIsLoading(true);
-
                     if (firebaseUser) {
-                        const minimalUser: User = {
-                            id: firebaseUser.uid,
-                            email: firebaseUser.email || '',
-                            name: firebaseUser.displayName || 'Usuário',
-                            isPremium: false,
-                            isTrialActive: true, // pode começar com trial local
-                            trialStart: new Date().toISOString(),
-                            trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                            plan: 'free',
-                            preferences: { language: 'pt', showQuotes: true },
-                            usage: { interpretationsCount: 0 },
-                            dreamsTodayCount: 0,
-                            lastDreamDate: '',
-                        };
+                        // Carrega perfil offline primeiro se existir
+                        const offlineUser = await hybridStorage.getUser();
 
-                        setUser(minimalUser);
+                        // Busca dados reais do Firebase
+                        const userData = await authService.getUserData(firebaseUser.uid);
 
-                        // ✅ Perfil local (sem Firestore)
-                        if (LOCAL_ONLY_PROFILE) {
-                            try {
-                                await storageService.saveUser(minimalUser);
-                            } catch { }
-                        }
-
-                        // ✅ Sonhos locais por UID
-                        try {
-                            // @ts-ignore - depende do storageService com ForUser
-                            const userDreams = await storageService.getDreamsForUser(firebaseUser.uid);
+                        if (userData) {
+                            setUser(userData);
+                            const userDreams = await hybridStorage.getDreamsForUser(userData.id);
                             setDreams(userDreams);
-                            console.log(`[HISTORY] Loaded local dreams for uid=${firebaseUser.uid}: ${userDreams.length}`);
-                        } catch (e) {
-                            console.warn('[HISTORY] Failed to load user dreams:', e);
-                            setDreams([]);
+                            await hybridStorage.saveUser(userData);
+                        } else if (offlineUser && offlineUser.id === firebaseUser.uid) {
+                            setUser(offlineUser);
+                            const userDreams = await hybridStorage.getDreamsForUser(offlineUser.id);
+                            setDreams(userDreams);
+                        } else {
+                            // Fallback minimal
+                            const minimalUser: User = {
+                                id: firebaseUser.uid,
+                                email: firebaseUser.email || '',
+                                name: firebaseUser.displayName || 'Usuário',
+                                isPremium: false,
+                                isTrialActive: true,
+                                trialStart: new Date().toISOString(),
+                                trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                plan: 'free',
+                                preferences: { language: 'pt', showQuotes: true },
+                                usage: { interpretationsCount: 0 },
+                                dreamsTodayCount: 0,
+                                lastDreamDate: '',
+                            };
+                            setUser(minimalUser);
                         }
-
-                        // Log de status
-                        try {
-                            // @ts-ignore
-                            const cnt = (await storageService.getDreamsForUser(firebaseUser.uid)).length;
-                            console.log(`[HISTORY] current local count (uid): ${cnt}`);
-                        } catch { }
-
-                        return;
-                    }
-
-                    // ✅ Deslogado: volta pro guest
-                    setUser(null);
-                    try {
-                        // @ts-ignore
-                        const guestDreams = await storageService.getDreamsForUser('guest');
+                    } else {
+                        // Logoff: volta para guest
+                        setUser(null);
+                        const guestDreams = await hybridStorage.getDreamsForUser('guest');
                         setDreams(guestDreams);
-                        console.log(`[HISTORY] Loaded local dreams for guest: ${guestDreams.length}`);
-                    } catch (e) {
-                        console.warn('[HISTORY] Failed to load guest dreams:', e);
-                        setDreams([]);
                     }
-
-                    try {
-                        // @ts-ignore
-                        const cnt = (await storageService.getDreamsForUser('guest')).length;
-                        console.log(`[HISTORY] current local count (guest): ${cnt}`);
-                    } catch { }
+                } catch (error) {
+                    console.error('[AppContext] Auth change error:', error);
                 } finally {
                     setIsLoading(false);
                 }
@@ -181,21 +156,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const setLanguage = async (lang: Language) => {
         setLanguageState(lang);
-        await storageService.setLanguage(lang);
+        await hybridStorage.saveLanguage(lang);
     };
 
-    const login = async (_email: string, _name: string) => {
-        return;
+    const login = async (email: string, password: string) => {
+        const userData = await authService.login(email, password);
+        setUser(userData);
     };
 
-    const register = async (_email: string, _password: string, _name: string) => {
-        return;
+    const register = async (email: string, password: string, name: string) => {
+        const userData = await authService.register(email, password, name);
+        setUser(userData);
     };
 
-    const logout = () => {
-        authService.logout();
+    const logout = async () => {
+        await authService.logout();
         setUser(null);
-        // não zera dreams aqui; o onAuthStateChanged vai carregar guest
     };
 
     const upgradeToPremium = async () => {
@@ -204,10 +180,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // --------- PREMIUM / TRIAL (local por enquanto) ---------
+    // --------- PREMIUM / TRIAL ---------
     const canUsePremium = (): boolean => {
         if (FREE_DEV_MODE) return true;
-        if (!user) return true; // guest pode usar (você decide depois)
+        if (!user) return true;
         return Boolean(user.isPremium || user.isTrialActive);
     };
 
@@ -222,17 +198,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
 
         setUser(updatedUser);
-
-        // ✅ sem Firestore agora
-        if (LOCAL_ONLY_PROFILE) {
-            try {
-                await storageService.saveUser(updatedUser);
-            } catch { }
+        await hybridStorage.saveUser(updatedUser);
+        if (!LOCAL_ONLY_PROFILE) {
+            await authService.updateUser(updatedUser);
         }
     };
 
     const canInterpret = (): boolean => canUsePremium();
-    // ------------------------------------------------------
 
     const addDream = async (
         text: string,
@@ -242,13 +214,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const nowIso = new Date().toISOString();
         const userId = getActiveUserId(user);
 
-        const newDream: Omit<DreamEntry, 'id'> = {
+        const id = 'local-dream-' + Date.now();
+        const savedDream: DreamEntry = {
+            id,
             userId,
             text,
             source,
             createdAt: nowIso,
             updatedAt: nowIso,
-
             dreamTitle: result?.dreamTitle || 'Sonho sem título',
             interpretationMain: result?.interpretationMain || '',
             symbols: result?.symbols || [],
@@ -256,100 +229,47 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             lifeAreas: result?.lifeAreas || [],
             advice: result?.advice || '',
             tags: result?.tags || [],
-
             isPremiumAnalysis: false,
             isFavorite: false,
             language: language as Language,
         };
 
-        const id = 'local-dream-' + Date.now();
-        const savedDream: DreamEntry = { ...newDream, id } as DreamEntry;
-
-        // ✅ sempre local e por usuário
-        // @ts-ignore
-        await storageService.saveDreamForUser(userId, savedDream);
-
+        await hybridStorage.saveDreamForUser(userId, savedDream);
         setDreams((prev) => [savedDream, ...prev]);
-
-        // (Opcional) atualizar usage local
-        if (user) {
-            const currentUsage = user.usage || { interpretationsCount: 0 };
-            const updatedUser: User = {
-                ...user,
-                usage: {
-                    ...currentUsage,
-                    interpretationsCount: (currentUsage.interpretationsCount || 0) + 1,
-                },
-            };
-            setUser(updatedUser);
-
-            if (LOCAL_ONLY_PROFILE) {
-                try { await storageService.saveUser(updatedUser); } catch { }
-            }
-        }
 
         return id;
     };
 
     const toggleFavorite = async (id: string) => {
         const userId = getActiveUserId(user);
-
         const dream = dreams.find((d) => d.id === id);
         if (!dream) return;
 
         const updated = { ...dream, isFavorite: !dream.isFavorite };
         setDreams((prev) => prev.map((d) => (d.id === id ? updated : d)));
-
-        try {
-            // @ts-ignore
-            await storageService.updateDreamForUser(userId, updated);
-        } catch (error) {
-            console.error('[AppContext] Erro ao atualizar favorito:', error);
-        }
+        await hybridStorage.updateDreamForUser(userId, updated);
     };
 
     const deleteDream = async (id: string) => {
         const userId = getActiveUserId(user);
-
         setDreams((prev) => prev.filter((d) => d.id !== id));
-        try {
-            // @ts-ignore
-            await storageService.deleteDreamForUser(userId, id);
-        } catch (error) {
-            console.error('[AppContext] Erro ao deletar sonho:', error);
-        }
+        await hybridStorage.deleteDreamForUser(userId, id);
     };
 
     const updateDream = async (id: string, updateData: Partial<DreamEntry>) => {
         const userId = getActiveUserId(user);
-
         const current = dreams.find(d => d.id === id);
         if (!current) return;
 
         const updated = { ...current, ...updateData, updatedAt: new Date().toISOString() };
-
-        setDreams((prev) =>
-            prev.map((d) => (d.id === id ? updated : d))
-        );
-
-        try {
-            // @ts-ignore
-            await storageService.updateDreamForUser(userId, updated);
-        } catch (error) {
-            console.error('[AppContext] Erro ao atualizar sonho:', error);
-        }
+        setDreams((prev) => prev.map((d) => (d.id === id ? updated : d)));
+        await hybridStorage.updateDreamForUser(userId, updated);
     };
 
     const clearDreams = async () => {
         const userId = getActiveUserId(user);
-
         setDreams([]);
-        try {
-            // @ts-ignore
-            await storageService.clearDreamsForUser(userId);
-        } catch (error) {
-            console.error('[AppContext] Erro ao limpar histórico:', error);
-        }
+        await hybridStorage.clearDreamsForUser(userId);
     };
 
     const setDailyMessage = async (msg: string | DailyMessageData) => {
@@ -363,10 +283,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await hybridStorage.setItem('dreamtells_daily_msg', JSON.stringify(data));
     };
 
-    const t = (key: keyof typeof pt): string => {
+    const t = (key: keyof typeof pt, params?: Record<string, string | number>): string => {
         try {
             const locale = locales[language] as any;
-            return locale[key] || (locales['pt'] as any)[key] || key;
+            let text = locale[key] || (locales['pt'] as any)[key] || key;
+
+            if (params) {
+                Object.entries(params).forEach(([k, v]) => {
+                    text = text.replace(new RegExp(`{{\\s*${k}\\s*}}`, 'g'), String(v));
+                });
+            }
+
+            return text;
         } catch {
             return key;
         }

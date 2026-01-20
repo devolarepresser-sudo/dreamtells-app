@@ -35,7 +35,7 @@ const RecordDream: React.FC = () => {
     // Controle interno para loading (evita travamento de botão)
     const [isLoadingRecording, setIsLoadingRecording] = useState(false);
 
-    const { addDream, user, language } = useApp();
+    const { addDream, user, language, t } = useApp();
     const navigate = useNavigate();
 
     // ✅ Buffers para NATIVE (Android/iOS)
@@ -60,12 +60,6 @@ const RecordDream: React.FC = () => {
     };
 
     const normalize = (s: string) => (s || '').replace(/\s+/g, ' ').trim();
-
-    // Escolhe o match “mais completo”
-    const pickBest = (matches: string[]) => {
-        if (!matches || matches.length === 0) return '';
-        return matches.reduce((a, b) => (b.length > a.length ? b : a), matches[0]);
-    };
 
     const updateTextareaFromBuffers = () => {
         const full = normalize(`${finalAccumRef.current} ${partialRef.current}`);
@@ -205,7 +199,7 @@ const RecordDream: React.FC = () => {
             if (isNative) {
                 const perm = await SpeechRecognition.requestPermissions();
                 if (perm.speechRecognition !== 'granted') {
-                    alert('Permissão de microfone negada para transcrição.');
+                    alert(t('record_error_permission'));
                     setIsLoadingRecording(false);
                     acceptingRef.current = false;
                     return;
@@ -222,7 +216,7 @@ const RecordDream: React.FC = () => {
                     });
                 } catch (e) {
                     console.warn('[RecordDream] SpeechRecognition.start erro:', e);
-                    alert('Falha ao iniciar transcrição no telefone.');
+                    alert(t('record_error_start'));
                     acceptingRef.current = false;
                     setIsLoadingRecording(false);
                     return;
@@ -238,7 +232,7 @@ const RecordDream: React.FC = () => {
             setIsRecording(true);
         } catch (err) {
             console.error('Error starting recording:', err);
-            alert('Não foi possível iniciar a gravação. Verifique suas permissões.');
+            alert(t('record_error_generic'));
             setIsRecording(false);
             acceptingRef.current = false;
         } finally {
@@ -314,7 +308,7 @@ const RecordDream: React.FC = () => {
         }
 
         if (!aiService || typeof aiService.analyzeDream !== 'function') {
-            alert('Erro interno da IA. Tente novamente mais tarde.');
+            alert(t('error_internal_ai'));
             return;
         }
 
@@ -368,10 +362,7 @@ const RecordDream: React.FC = () => {
     return (
         <Layout
             title={
-                <>
-                    Gravar ou<br />
-                    Escrever sonho
-                </>
+                <span dangerouslySetInnerHTML={{ __html: t('record_page_title') }} />
             }
             multiline
             showBack
@@ -405,7 +396,7 @@ const RecordDream: React.FC = () => {
                             letterSpacing: '-0.03em',
                         }}
                     >
-                        Gravando sonho
+                        {t('record_recording_title')}
                     </h2>
 
                     <p
@@ -417,8 +408,7 @@ const RecordDream: React.FC = () => {
                             lineHeight: 1.6,
                         }}
                     >
-                        Toque no botão, descreva seu sonho com naturalidade e depois
-                        envie para interpretação.
+                        {t('record_instructions')}
                     </p>
 
                     <textarea
@@ -426,8 +416,8 @@ const RecordDream: React.FC = () => {
                         onChange={(e) => setTranscript(e.target.value)}
                         placeholder={
                             isRecording
-                                ? 'Falando... transcrição em tempo real...'
-                                : 'O texto será preenchido automaticamente conforme você fala.'
+                                ? t('record_placeholder_recording')
+                                : t('record_placeholder_waiting')
                         }
                         style={{
                             width: '100%',
@@ -485,7 +475,7 @@ const RecordDream: React.FC = () => {
                                     WebkitTapHighlightColor: 'transparent',
                                 }}
                                 aria-pressed={isRecording}
-                                aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
+                                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                             >
                                 <Mic size={44} color="#FFF" />
                             </button>
@@ -501,7 +491,7 @@ const RecordDream: React.FC = () => {
                             fontSize: '1rem',
                         }}
                     >
-                        {isRecording ? 'Gravando... toque para parar' : 'Toque para iniciar gravação'}
+                        {isRecording ? t('record_status_recording') : t('record_status_start')}
                     </p>
 
                     {/* BOTÃO ENVIAR */}
@@ -540,11 +530,11 @@ const RecordDream: React.FC = () => {
                                 >
                                     <Loader size={20} />
                                 </motion.div>
-                                Interpretando...
+                                {t('record_analyzing_button')}
                             </>
                         ) : (
                             <>
-                                Enviar para Interpretação
+                                {t('record_analyze_button')}
                                 <Send size={20} />
                             </>
                         )}
@@ -565,10 +555,7 @@ const RecordDream: React.FC = () => {
                                 backdropFilter: 'blur(6px)',
                             }}
                         >
-                            A interpretação do seu sonho de áudio está sendo processada.
-                            Dependendo da complexidade da experiência e dos símbolos que você
-                            descreveu, isso pode levar alguns segundos. Você pode aguardar
-                            aqui enquanto a análise é concluída.
+                            {t('record_analyzing_card')}
                         </div>
                     )}
                 </div>

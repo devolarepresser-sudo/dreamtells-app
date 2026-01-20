@@ -1,5 +1,6 @@
 import { InterpretationResult, Language } from '../types';
 import { FREE_DEV_MODE } from '../config/featureFlags';
+import { hybridStorage } from './hybridStorage';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
@@ -362,7 +363,7 @@ const interpretDreamStub = async (text: string): Promise<InterpretationResult> =
 const interpretDreamApi = async (
     text: string,
     userId: string,
-    isDevMode: boolean,
+    // isDevMode removido
     language: string = 'pt'
 ): Promise<InterpretationResult> => {
     const safeLanguage = normalizeLangForBackend(language);
@@ -513,7 +514,37 @@ export const aiService = {
         await checkDailyLimit(userId);
 
         try {
-            const result = await interpretDreamApi(text, userId, isDevEnv, language);
+            // 🔹 INJEÇÃO DE CONTEXTO "MAPA DO INCONSCIENTE"
+            let dreamTextWithContext = text;
+            try {
+                const map = await hybridStorage.getUnconsciousMap();
+                if (map && Object.keys(map).length > 0) {
+                    const contextString = `
+[CONTEXTO PESSOAL (Use como LENTES para refinar/personalizar a interpretação):
+🧬 EIXO 1 - IDENTIDADE: ${map.identity?.type} (${map.identity?.description || ''}), ${map.age} anos.
+🌍 EIXO 2 - ORIGEM & LUGAR:
+- Origem: ${map.origin?.birthPlace || '?'} (${map.origin?.emotionalOrigin || ''})
+- Vive hoje em: ${map.origin?.currentPlace || '?'} (${map.origin?.feelingInCurrentPlace || ''})
+❤️ EIXO 3 - RELACIONAMENTO:
+- Status: ${map.relationship?.status || '?'}
+- Dinâmica vivida: ${(map.relationship?.feelings || []).join(', ')}
+- Pendência passado: ${map.relationship?.unresolvedPast || 'Não'}
+💼 EIXO 4 - TRABALHO & VALOR:
+- Status: ${map.work?.status || '?'}
+- Sentimento: ${(map.work?.feelings || []).join(', ')}
+- Identidade: Esse trabalho representa quem é? ${map.work?.identityMatch || '?'}
+🌱 EIXO 5 - FUTURO:
+- Desejo latente: ${map.future?.desire || ''}
+- Movimento: ${map.future?.movement || ''}
+🕯️ EIXO 6 - ESPIRITUALIDADE: ${map.religion?.type} (${map.religion?.description || ''})
+]`.trim();
+                    dreamTextWithContext = `${text}\n\n${contextString}`;
+                }
+            } catch (err) {
+                console.warn('[AI SERVICE] Falha ao carregar Mapa do Inconsciente:', err);
+            }
+
+            const result = await interpretDreamApi(dreamTextWithContext, userId, language);
 
             // 2. Incrementa se sucesso
             await incrementDailyLimit(userId);

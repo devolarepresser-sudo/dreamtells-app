@@ -50,6 +50,24 @@ export interface DreamEntry {
     isPremiumAnalysis: boolean;
     tags: string[];
 
+    // New Expert-Level Fields (Optional for backward compatibility)
+    coreOfDream?: string;
+    evidence?: string[];
+    decodingLayers?: {
+        emotional?: string;
+        relational?: string;
+        archetypal?: string;
+        individuation?: string;
+    };
+    alternativeHypotheses?: string[];
+    criticalPoint?: string;
+    practicalDirection?: {
+        minimalAction?: string;
+        integrationExercise?: string;
+        anchorPhrase?: string;
+    };
+    responsibleAlert?: string;
+
     // User Interaction
     isFavorite: boolean;
     feedback?: 'like' | 'dislike' | null;
@@ -92,6 +110,26 @@ export interface EmotionalAnalysis {
 
 export interface InterpretationResult {
     dreamTitle: string;
+
+    // New Expert-Level Fields
+    coreOfDream?: string;
+    evidence?: string[];
+    decodingLayers?: {
+        emotional?: string;
+        relational?: string;
+        archetypal?: string;
+        individuation?: string;
+    };
+    alternativeHypotheses?: string[];
+    criticalPoint?: string;
+    practicalDirection?: {
+        minimalAction?: string;
+        integrationExercise?: string;
+        anchorPhrase?: string;
+    };
+    responsibleAlert?: string;
+
+    // Legacy/Backward Compatibility
     interpretationMain: string;
     symbols: SymbolDetail[];
     emotions: string[];

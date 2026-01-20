@@ -39,18 +39,20 @@ const Layout = ({
                     width: "100%",
                     maxWidth: 480,
                     padding: multiline ? "0 12px 14px" : "16px 12px 14px",
+                    // ✅ Suporte a Safe Area (Notch/Status Bar)
+                    paddingTop: "max(16px, env(safe-area-inset-top))",
                     background: "transparent",
                     border: "none",
                     boxShadow: "none",
                     backdropFilter: "none",
-                    height: multiline ? "auto" : 64,
+                    height: "auto", // Deixa auto para crescer com o padding extra
                 }}
             >
                 <div
                     className="headerPremium-inner"
                     style={{
                         width: "100%",
-                        borderRadius: multiline ? "0 0 18px 18px" : 18,
+                        borderRadius: 18, // ✅ Sempre redondo agora, pedido do usuário
                         padding: multiline ? "20px 20px 24px" : "26px 20px",
                         background:
                             "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(37,99,235,0.98))",
@@ -159,7 +161,8 @@ const Layout = ({
             <main
                 className="page-content"
                 style={{
-                    paddingTop: multiline ? 136 : 126,
+                    // ✅ Empurra o conteúdo para baixo considerando o notch + altura do header
+                    paddingTop: `calc(${multiline ? 136 : 126}px + env(safe-area-inset-top))`,
                 }}
             >
                 {children}

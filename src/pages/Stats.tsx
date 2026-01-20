@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
@@ -18,7 +18,6 @@ import {
     XCircle,
     PenLine,
     RefreshCcw,
-    Lock,
 } from 'lucide-react';
 
 /**
@@ -27,11 +26,6 @@ import {
  * - Gera um diagnóstico com IA (usando aiService.analyzeGlobalDreams)
  * - Cache diário + limite 2 diagnósticos/dia
  * - Funciona mesmo sem sonho novo (e até sem sonhos) usando texto do dia como “matéria-prima”
- *
- * IMPORTANTE:
- * - Não cria rotas novas
- * - Não mexe no backend
- * - Substitua o arquivo atual por este
  */
 
 // -------------------- helpers --------------------
@@ -75,8 +69,9 @@ const getSubconsciousDiagnosis = (dreams: any[]) => {
         .slice(0, 5)
         .map(([k]) => emotionDisplay[k] || k);
 
-    let stateTitle = 'Equilíbrio / Indefinido';
-    let stateDesc = 'Seus registros ainda não mostram um padrão dominante claro.';
+    let stateKey = 'stats_state_balanced';
+    let stateTitleKey = 'stats_state_balanced';
+    let stateDescKey = 'stats_state_desc_balanced';
     let stateColor = '#64748B';
     let StateIcon: any = Compass;
 
@@ -99,115 +94,119 @@ const getSubconsciousDiagnosis = (dreams: any[]) => {
     const maxScore = Math.max(...Object.values(scores));
     if (maxScore > 0) {
         if (scores.bloqueio === maxScore) {
-            stateTitle = 'Bloqueio Emocional';
-            stateDesc = 'Há sinais de frustração e emoções seguradas pedindo vazão e decisão.';
+            stateKey = 'stats_state_blocked';
+            stateTitleKey = 'stats_state_blocked';
+            stateDescKey = 'stats_state_desc_blocked';
             stateColor = '#EF4444';
             StateIcon = Activity;
         } else if (scores.alerta === maxScore) {
-            stateTitle = 'Estado de Alerta';
-            stateDesc = 'Ansiedade/hipervigilância: algo pendente ou desconforto está te puxando por dentro.';
+            stateKey = 'stats_state_alert';
+            stateTitleKey = 'stats_state_alert';
+            stateDescKey = 'stats_state_desc_alert';
             stateColor = '#F59E0B';
             StateIcon = Zap;
         } else if (scores.transicao === maxScore) {
-            stateTitle = 'Em Transição';
-            stateDesc = 'Mudança interna em curso: confusão e novidade indicam reorganização de rota e identidade.';
+            stateKey = 'stats_state_transition';
+            stateTitleKey = 'stats_state_transition';
+            stateDescKey = 'stats_state_desc_transition';
             stateColor = '#8B5CF6';
             StateIcon = Brain;
         } else if (scores.clareza === maxScore) {
-            stateTitle = 'Clareza & Conexão';
-            stateDesc = 'Harmonia/expansão: sinais de direção e intuição mais nítida no seu caminho.';
+            stateKey = 'stats_state_clarity';
+            stateTitleKey = 'stats_state_clarity';
+            stateDescKey = 'stats_state_desc_clarity';
             stateColor = '#10B981';
             StateIcon = Compass;
         }
     }
 
-    return { stateTitle, stateDesc, stateColor, StateIcon, topEmotions };
+    return { stateKey, stateTitleKey, stateDescKey, stateColor, StateIcon, topEmotions };
 };
 
 // Conteúdo prático por estado (para validação e ação)
-const getPracticalMeaning = (stateTitle: string) => {
+const getPracticalMeaning = (stateKey: string) => {
     const map: Record<
         string,
-        { bullets: string[]; claims: string[]; actionTitle: string; actionPlaceholder: string }
+        { bulletsKeys: string[]; claimsKeys: string[]; actionTitleKey: string; actionPlaceholderKey: string }
     > = {
-        'Estado de Alerta': {
-            bullets: [
-                'Você está tentando prever o que pode dar errado (modo vigilância).',
-                'Existe decisão pendente ou desconforto que você vem empurrando.',
-                'Seu inconsciente está sinalizando: isso não some sozinho.',
+        'stats_state_alert': {
+            bulletsKeys: [
+                'stats_alert_bullet_1',
+                'stats_alert_bullet_2',
+                'stats_alert_bullet_3'
             ],
-            claims: [
-                'Tenho evitado uma decisão importante.',
-                'Sinto pressão interna / ansiedade sem “motivo claro”.',
-                'Estou cansado de pensar e não agir.',
-                'Sinto que algo está pendente e me cobrando.',
+            claimsKeys: [
+                'stats_alert_claim_1',
+                'stats_alert_claim_2',
+                'stats_alert_claim_3',
+                'stats_alert_claim_4'
             ],
-            actionTitle: 'Ação de hoje (2 min)',
-            actionPlaceholder: 'Qual decisão você está evitando encarar? Escreva em 1 frase.',
+            actionTitleKey: 'stats_action_title',
+            actionPlaceholderKey: 'stats_placeholder_action_alert',
         },
-        'Bloqueio Emocional': {
-            bullets: [
-                'Você está segurando emoções para não explodir ou desabar.',
-                'Há frustração repetida e sensação de estar preso.',
-                'O inconsciente tenta “vazar” isso nos sonhos para aliviar o peso.',
+        'stats_state_blocked': {
+            bulletsKeys: [
+                'stats_blocked_bullet_1',
+                'stats_blocked_bullet_2',
+                'stats_blocked_bullet_3'
             ],
-            claims: [
-                'Sinto que estou travado e não avanço.',
-                'Tenho raiva/tristeza guardada que não expresso.',
-                'Sinto que repito o mesmo padrão.',
-                'Sinto que estou preso a uma situação.',
+            claimsKeys: [
+                'stats_blocked_claim_1',
+                'stats_blocked_claim_2',
+                'stats_blocked_claim_3',
+                'stats_blocked_claim_4'
             ],
-            actionTitle: 'Ação de hoje (2 min)',
-            actionPlaceholder: 'O que você está segurando para evitar conflito? Escreva sem filtro.',
+            actionTitleKey: 'stats_action_title',
+            actionPlaceholderKey: 'stats_placeholder_action_blocked',
         },
-        'Em Transição': {
-            bullets: [
-                'Você está mudando por dentro, mesmo sem organizar por fora.',
-                'Confusão aqui é reestruturação de rumo e prioridades.',
-                'Seu inconsciente está testando caminhos antes de você decidir.',
+        'stats_state_transition': {
+            bulletsKeys: [
+                'stats_transition_bullet_1',
+                'stats_transition_bullet_2',
+                'stats_transition_bullet_3'
             ],
-            claims: [
-                'Sinto que minha vida está mudando e eu ainda não me adaptei.',
-                'Estou confuso sobre o próximo passo.',
-                'Quero recomeçar, mas temo o “depois”.',
-                'Sinto que algo novo está nascendo em mim.',
+            claimsKeys: [
+                'stats_transition_claim_1',
+                'stats_transition_claim_2',
+                'stats_transition_claim_3',
+                'stats_transition_claim_4'
             ],
-            actionTitle: 'Ação de hoje (2 min)',
-            actionPlaceholder: 'Qual próximo passo pequeno faria sentido hoje?',
+            actionTitleKey: 'stats_action_title',
+            actionPlaceholderKey: 'stats_placeholder_action_transition',
         },
-        'Clareza & Conexão': {
-            bullets: [
-                'Você está mais alinhado com sua intuição e com o que importa.',
-                'Há sinais de expansão: coragem, paz, direção.',
-                'O inconsciente reforça confiança e conexão.',
+        'stats_state_clarity': {
+            bulletsKeys: [
+                'stats_clarity_bullet_1',
+                'stats_clarity_bullet_2',
+                'stats_clarity_bullet_3'
             ],
-            claims: [
-                'Sinto mais esperança e direção.',
-                'Tenho sentido paz em momentos que antes eu não tinha.',
-                'Estou mais conectado comigo mesmo.',
-                'Estou construindo algo melhor.',
+            claimsKeys: [
+                'stats_clarity_claim_1',
+                'stats_clarity_claim_2',
+                'stats_clarity_claim_3',
+                'stats_clarity_claim_4'
             ],
-            actionTitle: 'Ação de hoje (2 min)',
-            actionPlaceholder: 'O que você quer reforçar nessa fase? Escreva 1 compromisso simples para hoje.',
+            actionTitleKey: 'stats_action_title',
+            actionPlaceholderKey: 'stats_placeholder_action_clarity',
         },
-        'Equilíbrio / Indefinido': {
-            bullets: [
-                'Sinais distribuídos: ainda não há padrão dominante claro.',
-                'Pode ser estabilidade ou falta de dados.',
-                'Com mais registros, o diagnóstico fica mais nítido.',
+        'stats_state_balanced': {
+            bulletsKeys: [
+                'stats_balanced_bullet_1',
+                'stats_balanced_bullet_2',
+                'stats_balanced_bullet_3'
             ],
-            claims: [
-                'Sinto que estou em uma fase neutra/estável.',
-                'Me sinto confuso, mas sem intensidade.',
-                'Sinto que falta clareza do que estou vivendo.',
-                'Quero entender melhor meus padrões.',
+            claimsKeys: [
+                'stats_balanced_claim_1',
+                'stats_balanced_claim_2',
+                'stats_balanced_claim_3',
+                'stats_balanced_claim_4'
             ],
-            actionTitle: 'Ação de hoje (2 min)',
-            actionPlaceholder: 'Como você está hoje, em poucas palavras? (ex: cansado, pressionado, sem foco)',
+            actionTitleKey: 'stats_action_title',
+            actionPlaceholderKey: 'stats_placeholder_action_balanced',
         },
     };
 
-    return map[stateTitle] || map['Equilíbrio / Indefinido'];
+    return map[stateKey] || map['stats_state_balanced'];
 };
 
 type YesNo = 'yes' | 'no';
@@ -216,58 +215,16 @@ type DailyValidation = Record<number, YesNo | null>;
 const DIAG_LIMIT_PER_DAY = 2;
 
 const Stats: React.FC = () => {
-    const { dreams } = useApp();
+    const { dreams, user, t, language } = useApp();
 
     // -------------------- diagnóstico (controle de estado) --------------------
     const [diagError, setDiagError] = useState<string | null>(null);
-    const [isGeneratingDiagnosis, setIsGeneratingDiagnosis] = useState(false);
-
-    const handleGenerateDiagnosis = async () => {
-        console.log("[DIAG] start - clicked");
-
-        // 🔴 LOG 1
-        console.log("[DIAG] before cache/limit checks");
-
-        try {
-            setIsGeneratingDiagnosis(true);
-            setDiagError(null);
-
-            // 🔴 LOG 2
-            console.log("[DIAG] passed state setup");
-
-            // ⚠️ COMENTE TEMPORARIAMENTE QUALQUER BLOCO DE CACHE/LIMITE
-            /*
-            if (cachedSomething) {
-              return;
-            }
-            if (diagCount >= DIAG_LIMIT_PER_DAY) {
-              return;
-            }
-            */
-
-            // 🔴 LOG 3
-            console.log("[DIAG] calling aiService NOW");
-
-            const response = await aiService.analyzeGlobalDreams({
-                test: true,
-            });
-
-            // 🔴 LOG 4
-            console.log("[DIAG] aiService response", response);
-
-        } catch (err) {
-            console.error("[DIAG] error", err);
-            setDiagError(String(err));
-        } finally {
-            setIsGeneratingDiagnosis(false);
-        }
-    };
-
 
     // Heurística de estado (rápido)
     const heuristic = useMemo(() => getSubconsciousDiagnosis(Array.isArray(dreams) ? dreams : []), [dreams]);
-    const { stateTitle, stateDesc, stateColor, StateIcon, topEmotions } = heuristic;
-    const practical = useMemo(() => getPracticalMeaning(stateTitle), [stateTitle]);
+    const { stateKey, stateTitleKey, stateDescKey, stateColor, StateIcon, topEmotions } = heuristic;
+    // @ts-ignore
+    const practical = useMemo(() => getPracticalMeaning(stateKey), [stateKey]);
 
     // Chaves diárias
     const todayKey = useMemo(() => getTodayKey(), []);
@@ -315,18 +272,27 @@ const Stats: React.FC = () => {
     // Texto curto “diagnóstico do dia” (heurística)
     const heuristicSummary = useMemo(() => {
         const top = topEmotions?.[0];
+        // @ts-ignore
+        const stateTitleTranslated = t(stateTitleKey);
+
         if (!Array.isArray(dreams) || dreams.length === 0) {
-            return `Hoje você está em **${stateTitle}**. Mesmo sem sonhos novos, você pode registrar como está e gerar direção prática.`;
+            // @ts-ignore
+            return t('stats_heuristic_empty', { state: stateTitleTranslated });
         }
-        if (!top) return `Hoje você está em **${stateTitle}**. Registre mais emoções nos sonhos para melhorar a precisão.`;
-        return `Hoje você está em **${stateTitle}**, puxado principalmente por **"${top}"**.`;
-    }, [dreams, stateTitle, topEmotions]);
+        if (!top) {
+            // @ts-ignore
+            return t('stats_heuristic_no_emotions', { state: stateTitleTranslated });
+        }
+        // @ts-ignore
+        return t('stats_heuristic_with_emotions', { state: stateTitleTranslated, top });
+    }, [dreams, stateTitleKey, topEmotions, t]);
 
     // Salvar texto do dia (sem IA)
     const handleSaveTodayText = () => {
         const txt = (todayText || '').trim();
         if (!txt) {
-            alert('Escreva pelo menos uma frase.');
+            // @ts-ignore
+            alert(t('stats_write_error'));
             return;
         }
         localStorage.setItem(microKey, JSON.stringify(txt));
@@ -367,7 +333,8 @@ const Stats: React.FC = () => {
         if (recentDreams.length >= 2) return recentDreams;
 
         // Garante pelo menos 2 itens pro backend não recusar (se ele exigir 2)
-        const baseText = (todayText || '').trim() || 'Sem sonho registrado hoje. Quero diagnóstico emocional do meu estado atual.';
+        // @ts-ignore
+        const baseText = (todayText || '').trim() || t('stats_today_placeholder');
         const placeholder = {
             dreamText: baseText,
             dreamTitle: 'Registro do dia',
@@ -379,13 +346,14 @@ const Stats: React.FC = () => {
 
         if (recentDreams.length === 1) return [recentDreams[0], placeholder];
         return [placeholder, placeholder];
-    }, [recentDreams, todayText]);
+    }, [recentDreams, todayText, t]);
 
     // Geração IA: usa o motor existente (analyzeGlobalDreams) como “diagnóstico”
     // Ele vai retornar algo como: phaseTitle / archetype / summary / mainChallenge / advice
     const generateEmotionalDiagnosis = async () => {
         if (!canGenerate) {
-            alert('Você já gerou os 2 diagnósticos de hoje.\n\nVolte amanhã para continuar seu acompanhamento.');
+            // @ts-ignore
+            alert(t('stats_diag_error_limit'));
             return;
         }
 
@@ -395,15 +363,19 @@ const Stats: React.FC = () => {
         try {
             // A ideia: “forçar contexto” pro modelo analisando sonhos + texto do dia + validações
             // Como o backend atual recebe só dreams, colocamos esses sinais dentro do array (bem leve, sem quebrar schema).
+            // @ts-ignore
+            const translatedStateTitle = t(stateTitleKey);
             const signals = {
                 dreamText:
-                    `SINAIS DO DIA (usar como contexto):\n` +
-                    `- Estado (heurístico): ${stateTitle}\n` +
+                    // @ts-ignore
+                    `${t('stats_diag_signals_intro')}\n` +
+                    `- Estado (heurístico): ${translatedStateTitle}\n` +
                     `- Emoções dominantes: ${(topEmotions || []).slice(0, 3).join(', ') || '—'}\n` +
                     `- Como estou hoje: ${(todayText || '').trim() || '—'}\n` +
                     `- Validações (sim/não): ${JSON.stringify(validation)}\n` +
                     `INSTRUÇÃO: gere um diagnóstico emocional claro e uma direção prática.\n`,
-                dreamTitle: 'Contexto do dia (Diagnóstico Emocional)',
+                // @ts-ignore
+                dreamTitle: t('stats_diag_signals_title'),
                 interpretationMain: '',
                 advice: '',
                 emotions: [],
@@ -443,27 +415,32 @@ const Stats: React.FC = () => {
         const challenge = diagnosisAI.mainChallenge || (Array.isArray(diagnosisAI.keyChallenges) ? diagnosisAI.keyChallenges[0] : '') || '';
         const guidance = diagnosisAI.advice || diagnosisAI.guidance || '';
 
-        const textToShare =
-            `✨ *Diagnóstico Emocional - DreamTells* ✨\n\n` +
-            `🧠 *Diagnóstico:* ${title}\n` +
-            `🛡️ *Arquétipo:* ${archetype}\n\n` +
-            (summary ? `"${summary}"\n\n` : '') +
-            (challenge ? `🚧 *Desafio:* ${challenge}\n\n` : '') +
-            (guidance ? `✅ *Direção:* ${guidance}\n\n` : '') +
-            `Volte amanhã e registre 1 frase do seu dia para refinar o diagnóstico.`;
+        // @ts-ignore
+        const textToShare = t('stats_share_text', {
+            title,
+            archetype,
+            summary,
+            challenge: challenge || '-',
+            guidance: guidance || '-'
+        });
+
+        // @ts-ignore
+        const shareTitle = t('stats_share_title');
 
         if (navigator.share) {
             try {
-                await navigator.share({ title: 'Meu Diagnóstico Emocional', text: textToShare });
+                await navigator.share({ title: shareTitle, text: textToShare });
             } catch {
                 // ignore cancel
             }
         } else {
             try {
                 await navigator.clipboard.writeText(textToShare);
-                alert('Copiado para a área de transferência!');
+                // @ts-ignore
+                alert(t('stats_share_copied'));
             } catch {
-                alert('Não foi possível copiar.');
+                // @ts-ignore
+                alert(t('stats_share_error'));
             }
         }
     };
@@ -495,7 +472,8 @@ const Stats: React.FC = () => {
                             <StateIcon size={24} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h3 style={{ fontSize: '1.2rem', color: '#F8FAFC', fontWeight: 900, margin: 0 }}>{stateTitle}</h3>
+                            {/* @ts-ignore */}
+                            <h3 style={{ fontSize: '1.2rem', color: '#F8FAFC', fontWeight: 900, margin: 0 }}>{t(stateTitleKey)}</h3>
                             <span style={{ color: 'rgba(226,232,240,0.75)', fontSize: '0.82rem', marginTop: 2 }}>
                                 Hoje: {todayKey} • Sonhos no app: {Array.isArray(dreams) ? dreams.length : 0}
                             </span>
@@ -503,7 +481,8 @@ const Stats: React.FC = () => {
                     </div>
 
                     <p style={{ color: 'var(--color-text-secondary)', lineHeight: '1.5', fontSize: '0.95rem', margin: 0 }}>
-                        {stateDesc}
+                        {/* @ts-ignore */}
+                        {t(stateDescKey)}
                     </p>
                 </div>
 
@@ -530,8 +509,8 @@ const Stats: React.FC = () => {
                         Diagnóstico rápido
                     </h3>
 
-                    <p style={{ color: '#334155', lineHeight: '1.6', fontSize: '0.95rem', marginBottom: 14 }}>
-                        {heuristicSummary}
+                    <p dangerouslySetInnerHTML={{ __html: heuristicSummary }} style={{ color: '#334155', lineHeight: '1.6', fontSize: '0.95rem', marginBottom: 14 }}>
+                        {/* heuristicSummary já traduzido */}
                     </p>
 
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -552,7 +531,8 @@ const Stats: React.FC = () => {
                             }}
                         >
                             <PenLine size={16} />
-                            Escrever como estou hoje
+                            {/* @ts-ignore */}
+                            {t('stats_button_write_today')}
                         </button>
 
                         <span style={{ color: '#64748B', fontSize: '0.85rem', fontWeight: 800 }}>
@@ -584,7 +564,8 @@ const Stats: React.FC = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                                 <Trophy size={22} color="#FBBF24" />
                                 <h3 style={{ fontSize: '1.15rem', color: '#F8FAFC', fontWeight: 900, margin: 0 }}>
-                                    Diagnóstico do dia: {diagnosisAI.phaseTitle || diagnosisAI.phaseName || '—'}
+                                    {/* @ts-ignore */}
+                                    {t('stats_card_diagnosis_title', { title: diagnosisAI.phaseTitle || diagnosisAI.phaseName || '—' })}
                                 </h3>
                             </div>
 
@@ -604,7 +585,8 @@ const Stats: React.FC = () => {
                                     }}
                                 >
                                     <Shield size={14} />
-                                    Arquétipo: {diagnosisAI.archetype || '—'}
+                                    {/* @ts-ignore */}
+                                    {t('stats_diag_subtype_label', { archetype: diagnosisAI.archetype || '—' })}
                                 </div>
 
                                 <p style={{ color: '#CBD5E1', lineHeight: '1.7', fontSize: '0.95rem', margin: 0 }}>
@@ -634,7 +616,8 @@ const Stats: React.FC = () => {
                                         }}
                                     >
                                         <AlertCircle size={16} />
-                                        Ponto crítico agora
+                                        {/* @ts-ignore */}
+                                        {t('stats_diag_critical_point')}
                                     </h4>
                                     <p style={{ color: '#E2E8F0', fontSize: '0.92rem', margin: 0 }}>
                                         {diagnosisAI.mainChallenge ||
@@ -652,14 +635,16 @@ const Stats: React.FC = () => {
                                 }}
                             >
                                 <h4 style={{ color: '#A5B4FC', fontSize: '0.9rem', fontWeight: 900, marginBottom: 6 }}>
-                                    Direção prática
+                                    {/* @ts-ignore */}
+                                    {t('stats_diag_direction_label')}
                                 </h4>
                                 <p style={{ color: '#F8FAFC', fontSize: '0.95rem', fontWeight: 600, margin: 0 }}>
                                     {diagnosisAI.advice || diagnosisAI.guidance || '—'}
                                 </p>
 
                                 <p style={{ marginTop: 10, color: '#94A3B8', fontSize: '0.85rem', lineHeight: '1.5' }}>
-                                    Gancho: volte amanhã e registre 1 frase do seu dia. Eu refino a direção com mais precisão.
+                                    {/* @ts-ignore */}
+                                    {t('stats_diag_hook_label')}
                                 </p>
                             </div>
 
@@ -685,7 +670,8 @@ const Stats: React.FC = () => {
                                     }}
                                 >
                                     <Share2 size={18} />
-                                    Compartilhar
+                                    {/* @ts-ignore */}
+                                    {t('stats_button_share')}
                                 </motion.button>
 
                                 <button
@@ -707,18 +693,20 @@ const Stats: React.FC = () => {
                                     }}
                                 >
                                     <RefreshCcw size={18} />
-                                    Atualizar diagnóstico (IA)
+                                    {/* @ts-ignore */}
+                                    {t('stats_button_update')}
                                 </button>
                             </div>
                         </>
                     ) : (
                         <>
                             <h3 style={{ fontSize: '1.1rem', color: '#F8FAFC', fontWeight: 900, marginBottom: 8 }}>
-                                Diagnóstico Emocional (IA)
+                                {/* @ts-ignore */}
+                                {t('stats_card_diagnosis_empty_title')}
                             </h3>
                             <p style={{ color: '#94A3B8', fontSize: '0.92rem', lineHeight: '1.6', marginBottom: 14 }}>
-                                Gere um diagnóstico que une seus sonhos + o que você está vivendo hoje. Ele te dá direção prática e cria um gancho real
-                                para voltar amanhã.
+                                {/* @ts-ignore */}
+                                {t('stats_card_diagnosis_desc')}
                             </p>
 
                             <button
@@ -741,12 +729,14 @@ const Stats: React.FC = () => {
                                 }}
                             >
                                 <Sparkles size={18} />
-                                Gerar diagnóstico agora
+                                {/* @ts-ignore */}
+                                {t('stats_button_generate')}
                             </button>
 
                             {aiError && (
                                 <p style={{ marginTop: 10, color: '#FCA5A5', fontSize: '0.9rem', fontWeight: 800 }}>
-                                    {aiError}
+                                    {/* @ts-ignore */}
+                                    {t('stats_diag_error_generic')}
                                 </p>
                             )}
                         </>
@@ -778,12 +768,14 @@ const Stats: React.FC = () => {
                     }}
                 >
                     <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
-                        O que isso significa na prática
+                        {/* @ts-ignore */}
+                        {t('stats_card_practical_title')}
                     </h3>
                     <ul style={{ margin: 0, paddingLeft: 18, color: '#CBD5E1', lineHeight: '1.7', fontSize: '0.95rem' }}>
-                        {practical.bullets.map((b, i) => (
+                        {practical.bulletsKeys.map((bKey: string, i: number) => (
                             <li key={i} style={{ marginBottom: 6 }}>
-                                {b}
+                                {/* @ts-ignore */}
+                                {t(bKey)}
                             </li>
                         ))}
                     </ul>
@@ -799,11 +791,12 @@ const Stats: React.FC = () => {
                     }}
                 >
                     <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
-                        Isso está acontecendo com você?
+                        {/* @ts-ignore */}
+                        {t('stats_card_validation_title')}
                     </h3>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {practical.claims.map((c, idx) => {
+                        {practical.claimsKeys.map((cKey: string, idx: number) => {
                             const v = validation[idx] || null;
                             return (
                                 <div
@@ -816,7 +809,8 @@ const Stats: React.FC = () => {
                                     }}
                                 >
                                     <div style={{ color: '#E2E8F0', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: 10 }}>
-                                        {c}
+                                        {/* @ts-ignore */}
+                                        {t(cKey)}
                                     </div>
                                     <div style={{ display: 'flex', gap: 10 }}>
                                         <button
@@ -833,11 +827,11 @@ const Stats: React.FC = () => {
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                gap: 8,
                                             }}
                                         >
-                                            <CheckCircle2 size={18} />
-                                            É isso
+                                            <CheckCircle2 size={16} style={{ marginRight: 6 }} />
+                                            {/* @ts-ignore */}
+                                            {t('common_yes')}
                                         </button>
                                         <button
                                             onClick={() => setClaim(idx, 'no')}
@@ -845,340 +839,215 @@ const Stats: React.FC = () => {
                                                 flex: 1,
                                                 borderRadius: 12,
                                                 padding: '10px 12px',
-                                                border: '1px solid rgba(239,68,68,0.35)',
-                                                background: v === 'no' ? 'rgba(239,68,68,0.16)' : 'rgba(0,0,0,0.0)',
-                                                color: v === 'no' ? '#FECACA' : '#94A3B8',
+                                                border: '1px solid rgba(248,113,113,0.35)',
+                                                background: v === 'no' ? 'rgba(248,113,113,0.18)' : 'rgba(0,0,0,0.0)',
+                                                color: v === 'no' ? '#FCA5A5' : '#94A3B8',
                                                 fontWeight: 900,
                                                 cursor: 'pointer',
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                gap: 8,
                                             }}
                                         >
-                                            <XCircle size={18} />
-                                            Não bate
+                                            <XCircle size={16} style={{ marginRight: 6 }} />
+                                            {/* @ts-ignore */}
+                                            {t('common_no')}
                                         </button>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-
-                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#94A3B8', fontSize: '0.85rem', fontWeight: 800 }}>Validação: {todayKey}</span>
-                        <span style={{ color: '#E2E8F0', fontSize: '0.9rem', fontWeight: 900 }}>
-                            {coherence === null ? 'Coerência: —' : `Coerência: ${coherence}%`}
-                        </span>
-                    </div>
                 </div>
 
-                {/* AÇÃO DO DIA (texto do usuário) */}
+                {/* AREA DE AÇÃO (MICRO-HÁBITO) */}
                 <div
                     ref={actionRef}
                     className="card"
                     style={{
-                        marginBottom: 18,
-                        background: `linear-gradient(135deg, rgba(15, 23, 42, 0.92), ${stateColor}10)`,
-                        border: `1px solid ${stateColor}35`,
+                        marginBottom: 100, // espaço final
+                        background: 'linear-gradient(to bottom, #1E293B, #0F172A)',
+                        border: '1px solid #3B82F6',
+                        boxShadow: '0 0 40px rgba(59, 130, 246, 0.1)',
                     }}
                 >
-                    <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 950 }}>
-                        {practical.actionTitle}
+                    <h3 style={{ marginBottom: 14, fontSize: '1.1rem', color: '#60A5FA', fontWeight: 900 }}>
+                        {/* @ts-ignore */}
+                        {t(practical.actionTitleKey)}
                     </h3>
 
-                    <p style={{ marginTop: 0, marginBottom: 12, color: '#94A3B8', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                        Escreva só 1 frase honesta. Mesmo sem sonho novo, isso alimenta o diagnóstico com precisão.
-                    </p>
-
-                    <textarea
-                        value={todayText}
-                        onChange={(e) => {
-                            setTodayText(e.target.value);
-                            setTodaySaved(false);
-                        }}
-                        placeholder={practical.actionPlaceholder}
-                        style={{
-                            width: '100%',
-                            minHeight: 110,
-                            borderRadius: 14,
-                            padding: 12,
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            color: '#E2E8F0',
-                            outline: 'none',
-                            resize: 'vertical',
-                            lineHeight: '1.5',
-                            fontSize: '0.95rem',
-                        }}
-                    />
-
-                    <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-                        <button
-                            onClick={handleSaveTodayText}
-                            style={{
-                                flex: 1,
-                                minWidth: 180,
-                                padding: '12px 14px',
-                                borderRadius: 14,
-                                border: 'none',
-                                background: `linear-gradient(90deg, ${stateColor}, rgba(99, 102, 241, 0.85))`,
-                                color: '#FFFFFF',
-                                fontWeight: 950,
-                                cursor: 'pointer',
-                            }}
-                        >
-                            Salvar reflexão
-                        </button>
-
-                        <button
-                            onClick={handleClearTodayText}
-                            style={{
-                                padding: '12px 14px',
-                                borderRadius: 14,
-                                border: '1px solid rgba(255,255,255,0.10)',
-                                background: 'transparent',
-                                color: '#94A3B8',
-                                fontWeight: 900,
-                                cursor: 'pointer',
-                            }}
-                        >
-                            Limpar
-                        </button>
-                    </div>
-
-                    {todaySaved && (
-                        <div
-                            style={{
-                                marginTop: 10,
-                                padding: 10,
-                                borderRadius: 12,
-                                background: 'rgba(34,197,94,0.10)',
-                                border: '1px solid rgba(34,197,94,0.18)',
-                                color: '#BBF7D0',
-                                fontSize: '0.9rem',
-                                fontWeight: 900,
-                            }}
-                        >
-                            Salvo. Use isso para gerar o diagnóstico (IA). Amanhã, volte e registre outra frase para refinar.
-                        </div>
-                    )}
-                </div>
-
-                {/* Predomínio emocional (compacto, sem gráfico) */}
-                <div className="card" style={{ marginBottom: 10 }}>
-                    <h3 style={{ marginBottom: 14, fontSize: '1.1rem' }}>Predomínio Emocional</h3>
-
-                    {topEmotions.length > 0 ? (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                            {topEmotions.map((tag, i) => (
-                                <span
-                                    key={i}
-                                    style={{
-                                        background: '#F7FAFC',
-                                        padding: '8px 16px',
-                                        borderRadius: 20,
-                                        fontSize: '0.9rem',
-                                        color: '#334155',
-                                        border: '1px solid #E2E8F0',
-                                        textTransform: 'capitalize',
-                                    }}
-                                >
-                                    {tag}
-                                </span>
-                            ))}
+                    {!todaySaved ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <textarea
+                                value={todayText}
+                                onChange={(e) => setTodayText(e.target.value)}
+                                // @ts-ignore
+                                placeholder={t(practical.actionPlaceholderKey)}
+                                style={{
+                                    width: '100%',
+                                    minHeight: 120,
+                                    borderRadius: 16,
+                                    padding: 16,
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid rgba(148,163,184,0.3)',
+                                    color: '#E2E8F0',
+                                    fontSize: '1rem',
+                                    lineHeight: '1.6',
+                                    resize: 'none',
+                                    outline: 'none',
+                                }}
+                            />
+                            <button
+                                onClick={handleSaveTodayText}
+                                style={{
+                                    alignSelf: 'flex-end',
+                                    background: '#3B82F6',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '12px 24px',
+                                    borderRadius: 99,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+                                }}
+                            >
+                                {/* @ts-ignore */}
+                                {t('common_save')}
+                            </button>
                         </div>
                     ) : (
-                        <p style={{ color: '#64748B', fontSize: '0.9rem' }}>
-                            Sem emoções detectadas ainda. Registre sonhos (quando tiver) para aumentar precisão.
-                        </p>
-                    )}
-                </div>
-
-                {/* MODAL: Geração IA com limite 2/dia */}
-                {showDeepAnalysis && (
-                    <div
-                        onClick={() => setShowDeepAnalysis(false)}
-                        style={{
-                            position: 'fixed',
-                            inset: 0,
-                            background: 'rgba(0, 0, 0, 0.55)',
-                            zIndex: 9999,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backdropFilter: 'blur(4px)',
-                            padding: 16,
-                        }}
-                    >
                         <div
-                            onClick={(e) => e.stopPropagation()}
                             style={{
-                                width: '100%',
-                                maxWidth: 420,
-                                background: 'rgba(15, 23, 42, 0.95)',
+                                background: 'rgba(34, 197, 94, 0.1)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
                                 borderRadius: 16,
-                                padding: 24,
-                                border: `1px solid ${stateColor}55`,
-                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.45)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                textAlign: 'center',
+                                padding: 16,
                             }}
                         >
-                            <div
-                                style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: '50%',
-                                    background: `${stateColor}20`,
-                                    color: stateColor,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginBottom: 16,
-                                }}
-                            >
-                                <Zap size={24} fill={stateColor} fillOpacity={0.2} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                <CheckCircle2 size={20} color="#4ADE80" />
+                                <span style={{ color: '#4ADE80', fontWeight: 800 }}>Registrado hoje!</span>
                             </div>
-
-                            <h3
-                                style={{
-                                    fontSize: '1.25rem',
-                                    color: '#F8FAFC',
-                                    marginBottom: 10,
-                                    fontWeight: 900,
-                                }}
-                            >
-                                Diagnóstico Emocional (IA)
-                            </h3>
-
-                            <p
-                                style={{
-                                    fontSize: '0.95rem',
-                                    color: '#CBD5E1',
-                                    lineHeight: '1.6',
-                                    marginBottom: 18,
-                                }}
-                            >
-                                Você pode gerar <b>até 2 diagnósticos por dia</b>. Quanto mais você registrar como está hoje, mais
-                                precisa fica a direção.
-                            </p>
-
-                            <div
-                                style={{
-                                    width: '100%',
-                                    borderRadius: 14,
-                                    padding: 12,
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    color: '#94A3B8',
-                                    fontSize: '0.9rem',
-                                    marginBottom: 16,
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                }}
-                            >
-                                <span>Hoje</span>
-                                <span style={{ fontWeight: 900, color: '#E2E8F0' }}>
-                                    {diagCount}/{DIAG_LIMIT_PER_DAY}
-                                </span>
-                            </div>
-
-                            {diagCount >= DIAG_LIMIT_PER_DAY && (
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        borderRadius: 14,
-                                        padding: 12,
-                                        background: 'rgba(239,68,68,0.10)',
-                                        border: '1px solid rgba(239,68,68,0.20)',
-                                        color: '#FECACA',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 800,
-                                        marginBottom: 14,
-                                    }}
-                                >
-                                    Limite diário atingido. Volte amanhã para refinar o diagnóstico com mais clareza.
-                                </div>
-                            )}
-
-                            {diagError && (
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        borderRadius: 14,
-                                        padding: 12,
-                                        background: 'rgba(239,68,68,0.10)',
-                                        border: '1px solid rgba(239,68,68,0.20)',
-                                        color: '#FECACA',
-                                        fontSize: '0.9rem',
-                                        fontWeight: 800,
-                                        marginBottom: 14,
-                                    }}
-                                >
-                                    {diagError}
-                                </div>
-                            )}
-
+                            <p style={{ color: '#E2E8F0', fontStyle: 'italic', margin: 0 }}>"{todayText}"</p>
                             <button
-                                onClick={generateEmotionalDiagnosis}
-                                disabled={isGenerating || diagCount >= DIAG_LIMIT_PER_DAY}
-                                style={{
-                                    width: '100%',
-                                    padding: '16px',
-                                    borderRadius: 14,
-                                    background:
-                                        isGenerating || diagCount >= DIAG_LIMIT_PER_DAY
-                                            ? '#334155'
-                                            : 'linear-gradient(90deg, #4F46E5, #4338CA)',
-                                    color: isGenerating || diagCount >= DIAG_LIMIT_PER_DAY ? '#94A3B8' : '#FFFFFF',
-                                    border: 'none',
-                                    fontSize: '1rem',
-                                    fontWeight: 900,
-                                    cursor:
-                                        isGenerating || diagCount >= DIAG_LIMIT_PER_DAY ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 10,
-                                }}
-                            >
-                                {isGenerating ? (
-                                    <>
-                                        <Sparkles size={18} className="animate-spin" />
-                                        Gerando diagnóstico...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Star size={18} fill="currentColor" />
-                                        Gerar diagnóstico agora
-                                    </>
-                                )}
-                            </button>
-
-                            <button
-                                onClick={() => setShowDeepAnalysis(false)}
+                                onClick={handleClearTodayText}
                                 style={{
                                     marginTop: 12,
                                     background: 'transparent',
-                                    border: 'none',
-                                    color: '#64748B',
-                                    fontSize: '0.85rem',
+                                    border: '1px solid rgba(148,163,184,0.3)',
+                                    color: '#94A3B8',
+                                    padding: '6px 12px',
+                                    borderRadius: 8,
+                                    fontSize: '0.8rem',
                                     cursor: 'pointer',
-                                    fontWeight: 700,
                                 }}
                             >
-                                Cancelar
+                                {/* @ts-ignore */}
+                                {t('common_edit')}
                             </button>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
+
+            {/* MODAL DE DEEP ANALYSIS (usado para gerar o diagnóstico) */}
+            {showDeepAnalysis && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.85)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 16,
+                        backdropFilter: 'blur(8px)',
+                    }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        style={{
+                            width: '100%',
+                            maxWidth: 400,
+                            background: '#0F172A',
+                            borderRadius: 24,
+                            padding: 24,
+                            border: '1px solid rgba(148,163,184,0.2)',
+                            textAlign: 'center',
+                            position: 'relative',
+                        }}
+                    >
+                        {!isGenerating ? (
+                            <>
+                                <h3 style={{ color: '#F8FAFC', fontSize: '1.4rem', fontWeight: 900, marginBottom: 16 }}>
+                                    {/* @ts-ignore */}
+                                    {t('stats_button_generate')}
+                                </h3>
+                                <p style={{ color: '#CBD5E1', lineHeight: '1.6', marginBottom: 24 }}>
+                                    {/* @ts-ignore */}
+                                    {t('stats_card_diagnosis_desc')}
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    <button
+                                        onClick={generateEmotionalDiagnosis}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #5A3EF2, #4F46E5)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            padding: '16px',
+                                            borderRadius: 16,
+                                            fontWeight: 800,
+                                            fontSize: '1rem',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 8px 20px rgba(79, 70, 229, 0.4)',
+                                        }}
+                                    >
+                                        {/* @ts-ignore */}
+                                        {t('stats_button_generate')}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDeepAnalysis(false)}
+                                        style={{
+                                            background: 'transparent',
+                                            color: '#94A3B8',
+                                            border: 'none',
+                                            padding: '12px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {/* @ts-ignore */}
+                                        {t('common_cancel')}
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ padding: '40px 0' }}>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                                    style={{
+                                        display: 'inline-block',
+                                        marginBottom: 20
+                                    }}
+                                >
+                                    <RefreshCcw size={48} color="#6366F1" />
+                                </motion.div>
+                                <h3 style={{ color: '#F8FAFC', fontSize: '1.2rem', fontWeight: 800 }}>
+                                    Analisando contexto...
+                                </h3>
+                                <p style={{ color: '#94A3B8', marginTop: 8 }}>
+                                    Isso pode levar alguns segundos.
+                                </p>
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
+            )}
         </Layout>
     );
 };
 
 export default Stats;
-

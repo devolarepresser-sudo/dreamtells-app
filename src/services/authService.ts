@@ -127,7 +127,9 @@ export const authService = {
     },
 
     login: async (email: string, password: string): Promise<User> => {
+        console.log("[AUTH SERVICE] Starting login for:", email);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log("[AUTH SERVICE] Auth successful, firebase uid:", userCredential.user.uid);
         const firebaseUser = userCredential.user;
 
         const force = shouldForcePremium(email, password);
@@ -138,24 +140,34 @@ export const authService = {
         }
 
         const userRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userRef);
+        let userData: User | null = null;
+        try {
+            console.log("[AUTH SERVICE] Fetching user doc from Firestore...");
+            const userDoc = await getDoc(userRef);
+            console.log("[AUTH SERVICE] Firestore getDoc finished. Exists:", userDoc.exists());
 
-        if (userDoc.exists()) {
-            let userData = userDoc.data() as User;
+            if (userDoc.exists()) {
+                userData = userDoc.data() as User;
 
-            // ✅ Master override
-            if (force) {
-                // atualiza firestore só se não estiver master
-                if (String((userData as any).plan) !== "master") {
-                    await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
+                // ✅ Master override
+                if (force) {
+                    // atualiza firestore só se não estiver master
+                    if (String((userData as any).plan) !== "master") {
+                        try {
+                            await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
+                        } catch (e) { console.warn("Failed to update master plan", e); }
+                    }
+                    userData = applyForcedPremium(userData);
+                    return userData;
                 }
-                userData = applyForcedPremium(userData);
+
+                // Normal flow
+                userData = checkTrialExpiration(userData);
                 return userData;
             }
-
-            // Normal flow
-            userData = checkTrialExpiration(userData);
-            return userData;
+        } catch (error) {
+            console.warn("Firestore error (likely offline):", error);
+            // Fallthrough to create valid temp user
         }
 
         // Fallback se doc não existir
@@ -179,7 +191,12 @@ export const authService = {
         };
 
         const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
-        await setDoc(userRef, newUser);
+        // Tenta salvar, mas não bloqueia se falhar
+        try {
+            await setDoc(userRef, newUser);
+        } catch (e) {
+            console.warn("Failed to create user doc (offline)", e);
+        }
         return newUser;
     },
 
@@ -229,21 +246,28 @@ export const authService = {
         }
 
         const userRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userRef);
+        let userData: User | null = null;
+        try {
+            const userDoc = await getDoc(userRef);
 
-        if (userDoc.exists()) {
-            let userData = userDoc.data() as User;
+            if (userDoc.exists()) {
+                userData = userDoc.data() as User;
 
-            if (force) {
-                if (String((userData as any).plan) !== "master") {
-                    await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
+                if (force) {
+                    if (String((userData as any).plan) !== "master") {
+                        try {
+                            await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
+                        } catch (e) { console.warn("Failed to update master plan", e); }
+                    }
+                    userData = applyForcedPremium(userData);
+                    return userData;
                 }
-                userData = applyForcedPremium(userData);
+
+                userData = checkTrialExpiration(userData);
                 return userData;
             }
-
-            userData = checkTrialExpiration(userData);
-            return userData;
+        } catch (error) {
+            console.warn("Firestore error (likely offline):", error);
         }
 
         const now = new Date();
@@ -266,7 +290,11 @@ export const authService = {
         };
 
         const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
-        await setDoc(userRef, newUser);
+        // Tenta salvar, mas não bloqueia se falhar
+        try {
+            await setDoc(userRef, newUser);
+        } catch (e) { console.warn("Failed to create user doc (offline)", e); }
         return newUser;
+
     },
 };

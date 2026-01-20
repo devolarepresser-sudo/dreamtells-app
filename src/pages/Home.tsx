@@ -1,9 +1,9 @@
 import type { Variants } from "framer-motion";
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, BookOpen, Crown, X, Lock, Home as HomeIcon, Sparkles, Trophy, Zap, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { BookOpen, Crown, Lock, Home as HomeIcon, Sparkles, Trophy, Zap, Compass, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 import { FREE_DEV_MODE } from '../config/featureFlags';
@@ -35,7 +35,7 @@ const itemVariants: Variants = {
 const Home: React.FC = () => {
     const navigate = useNavigate();
     const { user, t, canUsePremium, isLoading, dreams } = useApp();
-    const [showInterpretModal, setShowInterpretModal] = useState(false);
+
 
     // Cálculos de Gamificação: Caminho do Herói
     const stats = useMemo(() => {
@@ -44,33 +44,33 @@ const Home: React.FC = () => {
 
         // Algoritmo de Nível de Conexão
         let level = 1;
-        let nextMilestone = "3 Sonhos para o Nível 2";
+        let nextMilestone = t('gamification_milestone_l1');
         let progress = (dreamsCount / 3) * 100;
-        let title = "Explorador Novato";
+        let title = t('gamification_title_l1');
 
         if (dreamsCount >= 3) {
             level = 2;
-            nextMilestone = "Primeira Análise Profunda para o Nível 3";
+            nextMilestone = t('gamification_milestone_l2');
             progress = deepAnalysisCount > 0 ? 100 : 50;
-            title = "Aventureiro Onírico";
+            title = t('gamification_title_l2');
         }
 
         if (dreamsCount >= 3 && deepAnalysisCount >= 1) {
             level = 3;
-            nextMilestone = "10 Sonhos para o Nível Arquetípico";
+            nextMilestone = t('gamification_milestone_l3');
             progress = (dreamsCount / 10) * 100;
-            title = "Mestre dos Símbolos";
+            title = t('gamification_title_l3');
         }
 
         if (dreamsCount >= 10 && deepAnalysisCount >= 2) {
             level = 4;
-            nextMilestone = "A Conexão Suprema foi atingida!";
+            nextMilestone = t('gamification_milestone_l4');
             progress = 100;
-            title = "Sábio Arquetípico";
+            title = t('gamification_title_l4');
         }
 
         return { level, nextMilestone, progress: Math.min(progress, 100), title };
-    }, [dreams]);
+    }, [dreams, t]);
 
     const hasAccess = FREE_DEV_MODE ? true : canUsePremium();
 
@@ -205,7 +205,7 @@ const Home: React.FC = () => {
                                 </div>
                                 <div>
                                     <h4 style={{ color: '#F8FAFC', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                        Nível {stats.level}: {stats.title}
+                                        {t('gamification_level', { level: stats.level, title: stats.title })}
                                     </h4>
                                     <p style={{ color: '#94A3B8', fontSize: '0.75rem' }}>{stats.nextMilestone}</p>
                                 </div>
@@ -224,6 +224,44 @@ const Home: React.FC = () => {
                                     boxShadow: '0 0 10px rgba(90, 62, 242, 0.5)'
                                 }}
                             />
+                        </div>
+                    </motion.div>
+
+                    {/* MAPA DO INCONSCIENTE (Novo) */}
+                    <motion.div
+                        variants={itemVariants}
+                        onClick={() => navigate('/unconscious-map')}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            marginBottom: 24,
+                            padding: '16px 20px',
+                            background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.15))',
+                            borderRadius: 20,
+                            border: '1px solid rgba(168,85,247,0.3)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <div style={{ flex: 1, paddingRight: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                <Compass size={16} color="#A855F7" />
+                                <h4 style={{ color: '#E9D5FF', fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>
+                                    {t('map_card_home_title')}
+                                </h4>
+                            </div>
+                            <p style={{ color: '#D8B4FE', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+                                {t('map_card_home_desc')}
+                            </p>
+                        </div>
+                        <div style={{
+                            width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,85,247,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <ChevronRight size={18} color="#A855F7" />
                         </div>
                     </motion.div>
 
@@ -277,7 +315,7 @@ const Home: React.FC = () => {
                                 color: hasAccess ? '#F6E1A4' : '#E2E8F0',
                             }}
                         >
-                            {hasAccess ? 'Premium Ativo' : 'Trial Expirado'}
+                            {hasAccess ? t('premium_active') : t('premium_expired')}
                         </span>
                     </motion.div>
 
@@ -293,7 +331,7 @@ const Home: React.FC = () => {
                     >
                         {/* Interpretar */}
                         <motion.button
-                            onClick={() => setShowInterpretModal(true)}
+                            onClick={() => navigate('/record')}
                             className="btn-primary"
                             style={{
                                 display: 'flex',
@@ -370,7 +408,7 @@ const Home: React.FC = () => {
                                     marginBottom: 10,
                                 }}
                             >
-                                Sua jornada continua com o Premium.
+                                {t('premium_teaser_journey')}
                             </p>
                             <button
                                 onClick={() => navigate('/premium')}
@@ -390,117 +428,6 @@ const Home: React.FC = () => {
                     )}
                 </div>
 
-                {/* MODAL INTERPRETAR */}
-                <AnimatePresence>
-                    {showInterpretModal && (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowInterpretModal(false)}
-                                style={{
-                                    position: 'fixed',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    background: 'rgba(0,0,0,0.6)',
-                                    zIndex: 50,
-                                    backdropFilter: 'blur(6px)',
-                                }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-                                animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                                exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-                                transition={{
-                                    type: 'spring',
-                                    damping: 24,
-                                    stiffness: 260,
-                                }}
-                                style={{
-                                    position: 'fixed',
-                                    top: '50%',
-                                    left: '50%',
-                                    // transform removed to avoid conflict with motion props
-                                    background:
-                                        'linear-gradient(135deg,#111827,#020617)',
-                                    borderRadius: 24,
-                                    padding: '22px 20px 26px',
-                                    zIndex: 60,
-                                    width: '90%',
-                                    maxWidth: 420,
-                                    boxShadow:
-                                        '0 25px 50px -12px rgba(0,0,0,0.8)',
-                                    border:
-                                        '1px solid rgba(148,163,184,0.3)',
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        marginBottom: 18,
-                                    }}
-                                >
-                                    <h3
-                                        style={{
-                                            fontSize: '1.1rem',
-                                            fontWeight: 700,
-                                            color: '#E5E7EB',
-                                        }}
-                                    >
-                                        Como deseja interpretar?
-                                    </h3>
-                                    <button
-                                        onClick={() => setShowInterpretModal(false)}
-                                        style={{
-                                            background: 'rgba(15,23,42,0.95)',
-                                            borderRadius: '50%',
-                                            padding: 8,
-                                            border: '1px solid rgba(148,163,184,0.7)',
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        <X size={20} color="#E5E7EB" />
-                                    </button>
-                                </div>
-                                <div
-                                    style={{
-                                        display: 'grid',
-                                        gap: 12,
-                                    }}
-                                >
-                                    <motion.button
-                                        onClick={() => {
-                                            setShowInterpretModal(false);
-                                            navigate('/record');
-                                        }}
-                                        className="btn-secondary"
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            borderRadius: 999,
-                                            padding: '11px 14px',
-                                            background: 'rgba(15,23,42,0.96)',
-                                            border: '1px solid rgba(148,163,184,0.85)',
-                                            color: '#E5E7EB',
-                                            boxShadow: '0 12px 30px rgba(15,23,42,0.9)',
-                                            cursor: 'pointer',
-                                        }}
-                                        whileTap={{ scale: 0.98 }}
-                                    >
-                                        <Mic size={20} style={{ marginRight: 10 }} />
-                                        {t('action_record')}
-                                    </motion.button>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
             </motion.div>
         </Layout>
     );

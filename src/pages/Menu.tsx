@@ -14,6 +14,7 @@ import {
     Sparkles,
     LogOut,
     Sun,
+    Compass,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -51,6 +52,7 @@ const Menu = () => {
         // Premium features (unlocked)
         { icon: Activity, label: t("menu_stats"), path: "/stats", tileClass: "menuIconTile-insights", isPremiumTile: true },
         { icon: Book, label: t("menu_symbols"), path: "/symbols", tileClass: "menuIconTile-symbols", isPremiumTile: true },
+        { icon: Compass, label: t("map_title"), path: "/unconscious-map", tileClass: "menuIconTile-map", isPremiumTile: true },
 
         // Premium page (always visible)
         { icon: Crown, label: t("menu_premium"), path: "/premium", tileClass: "menuIconTile-premium", isPremiumTile: true },
@@ -134,6 +136,10 @@ const Menu = () => {
 
           .menuIconTile-symbols{
             background: linear-gradient(135deg, #7C3AED, #A78BFA);
+          }
+
+          .menuIconTile-map{
+            background: linear-gradient(135deg, #A855F7, #D8B4FE);
           }
 
           .menuIconTile-premium{

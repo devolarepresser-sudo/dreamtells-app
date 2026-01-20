@@ -4,7 +4,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { ArrowLeft, Sparkles, ChevronRight } from 'lucide-react';
-import { ChatGPTIcon } from '../components/ChatGPTIcon';
 import { DreamEntry } from '../types';
 import { aiService } from '../services/aiService';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -310,7 +309,7 @@ const DeepDreamAnalysis: React.FC = () => {
                                     transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
                                     style={{ display: 'flex', alignItems: 'center' }}
                                 >
-                                    <ChatGPTIcon size={20} />
+                                    <Sparkles size={20} />
                                 </motion.div>
                             </>
                         ) : currentStep < QUESTIONS_TO_USE.length - 1 ? (
@@ -320,7 +319,7 @@ const DeepDreamAnalysis: React.FC = () => {
                         ) : (
                             <>
                                 Gerar interpretação aprofundada
-                                <ChatGPTIcon size={18} />
+                                <Sparkles size={18} />
                             </>
                         )}
                     </motion.button>

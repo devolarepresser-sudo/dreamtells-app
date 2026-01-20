@@ -21,6 +21,7 @@ import Paywall from './components/Paywall';
 import Welcome from './pages/Welcome';
 import HowItWorks from './pages/HowItWorks';
 import DeepDreamAnalysis from './pages/DeepDreamAnalysis';
+import UnconsciousMap from './pages/UnconsciousMap';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -54,6 +55,7 @@ const App: React.FC = () => {
                         <Route path="/deep-analysis/:id" element={<ProtectedRoute><DeepDreamAnalysis /></ProtectedRoute>} />
                         {/* Fallback para deep-analysis sem ID */}
                         <Route path="/deep-analysis" element={<Navigate to="/history" replace />} />
+                        <Route path="/unconscious-map" element={<ProtectedRoute><UnconsciousMap /></ProtectedRoute>} />
                         {/* <Route path="/life-context" element={<ProtectedRoute><LifeContext /></ProtectedRoute>} /> */}
                         <Route path="/daily-message" element={<ProtectedRoute><DailyMessage /></ProtectedRoute>} />
 
