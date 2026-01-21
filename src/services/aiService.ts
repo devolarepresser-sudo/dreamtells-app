@@ -338,22 +338,30 @@ const generateDailyMessageApi = async (userId: string): Promise<any> => {
 };
 
 const interpretDreamStub = async (text: string): Promise<InterpretationResult> => {
-    console.log('[STUB] Analyzing dream:', text);
+    console.log('[STUB] Analyzing dream (New Persona):', text);
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve({
-                dreamTitle: 'Seu Sonho',
-                interpretationMain:
-                    'Este é um exemplo ilustrativo de interpretação. Quando a versão completa estiver ativa, você receberá uma análise profunda e personalizada.',
+                dreamTitle: 'O Eco do Silêncio',
+                interpretationMain: `Há uma quietude neste sonho que reverbera o que você tem evitado sentir nos últimos dias.
+
+Algo dentro de você está pedindo uma pausa, uma trégua na guerra que você trava consigo mesmo para ser produtivo o tempo todo.
+
+Você vive a tensão entre o desejo de descanso profundo e a culpa corrosiva de "não estar fazendo o suficiente".
+
+Você pode estar evitando reconhecer que seu valor não reside no que você produz, mas em quem você é quando nada faz.
+
+Esse sonho revela que sua exaustão não é apenas física, é um grito da sua alma pedindo para apenas 'ser'.
+
+Qual é a primeira coisa que você deixaria de fazer hoje se acreditasse, de verdade, que já é bom o suficiente?`,
                 symbols: [
-                    { name: 'Conexão', meaning: 'Necessidade de proximidade emocional.' },
-                    { name: 'Sentimentos internos', meaning: 'Emoções que você não expressa diretamente.' },
-                    { name: 'Intimidade', meaning: 'Busca por vínculo e validação.' },
+                    { name: 'Sala Vazia', meaning: 'O espaço interno que você teme visitar para não encontrar sua própria solidão.' },
+                    { name: 'Relógio Parado', meaning: 'O convite do seu inconsciente para sair do tempo cronológico e entrar no tempo da alma.' }
                 ],
-                emotions: ['Afeto', 'Desejo', 'Vulnerabilidade', 'Busca por conexão'],
-                lifeAreas: ['Relacionamentos', 'Vida afetiva', 'Autoestima'],
-                advice: 'Observe seus desejos no dia a dia. Talvez seja hora de conversar com sinceridade.',
-                tags: ['afeto', 'conexão', 'sentimentos'],
+                emotions: ['Cansaço existencial', 'Culpa oculta', 'Anseio por paz'],
+                lifeAreas: ['Autoestima', 'Carreira', 'Saúde Mental'],
+                advice: 'Desligue o cronômetro interno. Hoje, faça algo inútil e prazeroso apenas porque você merece existir sem produzir.',
+                tags: ['pausa', 'valor pessoal', 'exaustão'],
                 language: 'pt',
             });
         }, 1500);

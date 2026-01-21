@@ -18,9 +18,9 @@ npx cap sync
    - **ID do produto:** `dreamtells_premium_mensal`
    - **Nome:** DreamTells Premium
    - **Descrição:** Acesso ilimitado a interpretação de sonhos com IA
-   - **Preço:** R$ 9,90
+   - **Preço:** R$ 19,90
    - **Período de cobrança:** Mensal
-   - **Período de teste:** 7 dias (opcional, mas recomendado)
+   - **Período de teste:** 5 dias (opcional, mas recomendado)
 
 ## Como Funciona
 
