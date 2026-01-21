@@ -526,25 +526,15 @@ export const aiService = {
             let dreamTextWithContext = text;
             try {
                 const map = await hybridStorage.getUnconsciousMap();
-                if (map && Object.keys(map).length > 0) {
+                if (map && (map.axisIdentity || map.axisSecurity)) {
                     const contextString = `
-[CONTEXTO PESSOAL (Use como LENTES para refinar/personalizar a interpretação):
-🧬 EIXO 1 - IDENTIDADE: ${map.identity?.type} (${map.identity?.description || ''}), ${map.age} anos.
-🌍 EIXO 2 - ORIGEM & LUGAR:
-- Origem: ${map.origin?.birthPlace || '?'} (${map.origin?.emotionalOrigin || ''})
-- Vive hoje em: ${map.origin?.currentPlace || '?'} (${map.origin?.feelingInCurrentPlace || ''})
-❤️ EIXO 3 - RELACIONAMENTO:
-- Status: ${map.relationship?.status || '?'}
-- Dinâmica vivida: ${(map.relationship?.feelings || []).join(', ')}
-- Pendência passado: ${map.relationship?.unresolvedPast || 'Não'}
-💼 EIXO 4 - TRABALHO & VALOR:
-- Status: ${map.work?.status || '?'}
-- Sentimento: ${(map.work?.feelings || []).join(', ')}
-- Identidade: Esse trabalho representa quem é? ${map.work?.identityMatch || '?'}
-🌱 EIXO 5 - FUTURO:
-- Desejo latente: ${map.future?.desire || ''}
-- Movimento: ${map.future?.movement || ''}
-🕯️ EIXO 6 - ESPIRITUALIDADE: ${map.religion?.type} (${map.religion?.description || ''})
+[ESTADO INTERNO (Use como LENTE SILENCIOSA para calibrar a interpretação. NÃO CITE estes dados):
+1. IDENTIDADE: ${map.axisIdentity?.status || '?'} (${map.axisIdentity?.note || ''})
+2. SEGURANÇA: ${map.axisSecurity?.status || '?'} (${map.axisSecurity?.note || ''})
+3. VÍNCULO: ${(map.axisBond?.status || []).join(', ')} (${map.axisBond?.note || ''})
+4. MOVIMENTO: ${map.axisMovement?.status || '?'} (${map.axisMovement?.note || ''})
+5. DESEJO: ${map.axisDesire?.status || '?'} (${map.axisDesire?.note || ''})
+6. ENERGIA: ${map.axisEnergy?.status || '?'} (${map.axisEnergy?.note || ''})
 ]`.trim();
                     dreamTextWithContext = `${text}\n\n${contextString}`;
                 }

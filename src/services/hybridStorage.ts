@@ -5,46 +5,36 @@ const isNative = Capacitor.isNativePlatform();
 
 // ✅ EIXOS PSÍQUICOS (Versão 2.0)
 export interface UnconsciousMap {
-    // EIXO 1: Identidade & Corpo
-    identity?: { type: string; description: string };
-    age?: string;
-
-    // EIXO 2: Origem & Lugar
-    origin?: {
-        birthPlace: string;
-        emotionalOrigin: string; // Onde cresceu emocionalmente
-        currentPlace: string;
-        feelingInCurrentPlace: string; // Enraizado, estrangeiro...
-        feelingDescription?: string;
+    // EIXO 1 - Identidade Vivida
+    axisIdentity?: {
+        status: string; // Alinhado, Conflito, Transição...
+        note?: string;
     };
-
-    // EIXO 3: Relacionamento
-    relationship?: {
-        status: string; // Solteiro, casado...
-        feelings: string[]; // Segurança, conflito... (multipla)
-        unresolvedPast: string; // Sim/Não/Talvez
-        unresolvedDescription?: string;
+    // EIXO 2 - Chão Interno (Segurança)
+    axisSecurity?: {
+        status: string; // Enraizado, Suspenso...
+        note?: string;
     };
-
-    // EIXO 4: Trabalho & Valor
-    work?: {
-        status: string; // Trabalhando, transição...
-        feelings: string[]; // Realizado, estagnado... (multipla)
-        identityMatch: string; // Sim, Parcialmente, Não
+    // EIXO 3 - Vínculo Emocional
+    axisBond?: {
+        status: string[]; // Multipla (max 2)
+        note?: string;
     };
-
-    // EIXO 5: Desejo & Futuro
-    future?: {
-        desire: string; // Campo livre
-        movement: string; // Indo em direção, parado...
+    // EIXO 4 - Movimento / Direção
+    axisMovement?: {
+        status: string; // Avançando, Parado...
+        note?: string;
     };
-
-    // EIXO 6: Espiritualidade (Mantido)
-    religion?: { type: string; description: string };
-
-    // Legacy (mantido para compatibilidade se quiser) ou uso futuro
-    socialClass?: { type: string; description: string };
-    lifePhase?: { type: string; description: string };
+    // EIXO 5 - Desejo
+    axisDesire?: {
+        status: string; // Sei o que quero, Medo...
+        note?: string;
+    };
+    // EIXO 6 - Energia Emocional
+    axisEnergy?: {
+        status: string; // Expansão, Cansaço...
+        note?: string;
+    };
 
     lastUpdated?: string;
 }
