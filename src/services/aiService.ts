@@ -243,9 +243,9 @@ const resolveApiBaseUrl = (): string => {
         // Se estiver no Android Emulator, localhost nao funciona. 
         // Precisa ser 10.0.2.2 para acessar a maquina host.
         if (Capacitor.getPlatform() === 'android') {
-            return 'http://10.0.2.2:10000';
+            return 'http://10.0.2.2:3000';
         }
-        return 'http://localhost:10000';
+        return 'http://localhost:3000';
     }
 
     // Se estivermos compilando para Staging (através de uma env variable)

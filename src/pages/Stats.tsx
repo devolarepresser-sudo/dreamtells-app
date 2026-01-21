@@ -545,11 +545,203 @@ const Stats: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Diagnóstico IA (resultado do dia) */}
+
+                {/* O QUE ISSO SIGNIFICA NA PRÁTICA */}
                 <div
                     className="card"
                     style={{
                         marginBottom: 16,
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        border: `1px solid ${stateColor}30`,
+                    }}
+                >
+                    <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
+                        {/* @ts-ignore */}
+                        {t('stats_card_practical_title')}
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: 18, color: '#CBD5E1', lineHeight: '1.7', fontSize: '0.95rem' }}>
+                        {practical.bulletsKeys.map((bKey: string, i: number) => (
+                            <li key={i} style={{ marginBottom: 6 }}>
+                                {/* @ts-ignore */}
+                                {t(bKey)}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                {/* VALIDAÇÃO */}
+                <div
+                    className="card"
+                    style={{
+                        marginBottom: 16,
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                >
+                    <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
+                        {/* @ts-ignore */}
+                        {t('stats_card_validation_title')}
+                    </h3>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {practical.claimsKeys.map((cKey: string, idx: number) => {
+                            const v = validation[idx] || null;
+                            return (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        padding: 12,
+                                        borderRadius: 14,
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                        background: 'rgba(15, 23, 42, 0.55)',
+                                    }}
+                                >
+                                    <div style={{ color: '#E2E8F0', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: 10 }}>
+                                        {/* @ts-ignore */}
+                                        {t(cKey)}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        <button
+                                            onClick={() => setClaim(idx, 'yes')}
+                                            style={{
+                                                flex: 1,
+                                                borderRadius: 12,
+                                                padding: '10px 12px',
+                                                border: '1px solid rgba(34,197,94,0.35)',
+                                                background: v === 'yes' ? 'rgba(34,197,94,0.18)' : 'rgba(0,0,0,0.0)',
+                                                color: v === 'yes' ? '#BBF7D0' : '#94A3B8',
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <CheckCircle2 size={16} style={{ marginRight: 6 }} />
+                                            {/* @ts-ignore */}
+                                            {t('common_yes')}
+                                        </button>
+                                        <button
+                                            onClick={() => setClaim(idx, 'no')}
+                                            style={{
+                                                flex: 1,
+                                                borderRadius: 12,
+                                                padding: '10px 12px',
+                                                border: '1px solid rgba(248,113,113,0.35)',
+                                                background: v === 'no' ? 'rgba(248,113,113,0.18)' : 'rgba(0,0,0,0.0)',
+                                                color: v === 'no' ? '#FCA5A5' : '#94A3B8',
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <XCircle size={16} style={{ marginRight: 6 }} />
+                                            {/* @ts-ignore */}
+                                            {t('common_no')}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* AREA DE AÇÃO (MICRO-HÁBITO) */}
+                <div
+                    ref={actionRef}
+                    className="card"
+                    style={{
+                        marginBottom: 16,
+                        background: 'linear-gradient(to bottom, #1E293B, #0F172A)',
+                        border: '1px solid #3B82F6',
+                        boxShadow: '0 0 40px rgba(59, 130, 246, 0.1)',
+                    }}
+                >
+                    <h3 style={{ marginBottom: 14, fontSize: '1.1rem', color: '#60A5FA', fontWeight: 900 }}>
+                        {/* @ts-ignore */}
+                        {t(practical.actionTitleKey)}
+                    </h3>
+
+                    {!todaySaved ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <textarea
+                                value={todayText}
+                                onChange={(e) => setTodayText(e.target.value)}
+                                // @ts-ignore
+                                placeholder={t(practical.actionPlaceholderKey)}
+                                style={{
+                                    width: '100%',
+                                    minHeight: 120,
+                                    borderRadius: 16,
+                                    padding: 16,
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid rgba(148,163,184,0.3)',
+                                    color: '#E2E8F0',
+                                    fontSize: '1rem',
+                                    lineHeight: '1.6',
+                                    resize: 'none',
+                                    outline: 'none',
+                                }}
+                            />
+                            <button
+                                onClick={handleSaveTodayText}
+                                style={{
+                                    alignSelf: 'flex-end',
+                                    background: '#3B82F6',
+                                    color: '#fff',
+                                    border: 'none',
+                                    padding: '12px 24px',
+                                    borderRadius: 99,
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+                                }}
+                            >
+                                {/* @ts-ignore */}
+                                {t('common_save')}
+                            </button>
+                        </div>
+                    ) : (
+                        <div
+                            style={{
+                                background: 'rgba(34, 197, 94, 0.1)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                borderRadius: 16,
+                                padding: 16,
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                <CheckCircle2 size={20} color="#4ADE80" />
+                                <span style={{ color: '#4ADE80', fontWeight: 800 }}>Registrado hoje!</span>
+                            </div>
+                            <p style={{ color: '#E2E8F0', fontStyle: 'italic', margin: 0 }}>"{todayText}"</p>
+                            <button
+                                onClick={handleClearTodayText}
+                                style={{
+                                    marginTop: 12,
+                                    background: 'transparent',
+                                    border: '1px solid rgba(148,163,184,0.3)',
+                                    color: '#94A3B8',
+                                    padding: '6px 12px',
+                                    borderRadius: 8,
+                                    fontSize: '0.8rem',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {/* @ts-ignore */}
+                                {t('common_edit')}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Diagnóstico IA (resultado do dia) */}
+                <div
+                    className="card"
+                    style={{
+                        marginBottom: 100, // espaço final
                         padding: 18,
                         background: diagnosisAI
                             ? 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)'
@@ -756,197 +948,6 @@ const Stats: React.FC = () => {
                             </span>
                         )}
                     </div>
-                </div>
-
-                {/* O QUE ISSO SIGNIFICA NA PRÁTICA */}
-                <div
-                    className="card"
-                    style={{
-                        marginBottom: 16,
-                        background: 'rgba(15, 23, 42, 0.65)',
-                        border: `1px solid ${stateColor}30`,
-                    }}
-                >
-                    <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
-                        {/* @ts-ignore */}
-                        {t('stats_card_practical_title')}
-                    </h3>
-                    <ul style={{ margin: 0, paddingLeft: 18, color: '#CBD5E1', lineHeight: '1.7', fontSize: '0.95rem' }}>
-                        {practical.bulletsKeys.map((bKey: string, i: number) => (
-                            <li key={i} style={{ marginBottom: 6 }}>
-                                {/* @ts-ignore */}
-                                {t(bKey)}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-
-                {/* VALIDAÇÃO */}
-                <div
-                    className="card"
-                    style={{
-                        marginBottom: 16,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                >
-                    <h3 style={{ marginBottom: 10, fontSize: '1.05rem', color: '#F8FAFC', fontWeight: 900 }}>
-                        {/* @ts-ignore */}
-                        {t('stats_card_validation_title')}
-                    </h3>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {practical.claimsKeys.map((cKey: string, idx: number) => {
-                            const v = validation[idx] || null;
-                            return (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        padding: 12,
-                                        borderRadius: 14,
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                        background: 'rgba(15, 23, 42, 0.55)',
-                                    }}
-                                >
-                                    <div style={{ color: '#E2E8F0', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: 10 }}>
-                                        {/* @ts-ignore */}
-                                        {t(cKey)}
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 10 }}>
-                                        <button
-                                            onClick={() => setClaim(idx, 'yes')}
-                                            style={{
-                                                flex: 1,
-                                                borderRadius: 12,
-                                                padding: '10px 12px',
-                                                border: '1px solid rgba(34,197,94,0.35)',
-                                                background: v === 'yes' ? 'rgba(34,197,94,0.18)' : 'rgba(0,0,0,0.0)',
-                                                color: v === 'yes' ? '#BBF7D0' : '#94A3B8',
-                                                fontWeight: 900,
-                                                cursor: 'pointer',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <CheckCircle2 size={16} style={{ marginRight: 6 }} />
-                                            {/* @ts-ignore */}
-                                            {t('common_yes')}
-                                        </button>
-                                        <button
-                                            onClick={() => setClaim(idx, 'no')}
-                                            style={{
-                                                flex: 1,
-                                                borderRadius: 12,
-                                                padding: '10px 12px',
-                                                border: '1px solid rgba(248,113,113,0.35)',
-                                                background: v === 'no' ? 'rgba(248,113,113,0.18)' : 'rgba(0,0,0,0.0)',
-                                                color: v === 'no' ? '#FCA5A5' : '#94A3B8',
-                                                fontWeight: 900,
-                                                cursor: 'pointer',
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                            }}
-                                        >
-                                            <XCircle size={16} style={{ marginRight: 6 }} />
-                                            {/* @ts-ignore */}
-                                            {t('common_no')}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* AREA DE AÇÃO (MICRO-HÁBITO) */}
-                <div
-                    ref={actionRef}
-                    className="card"
-                    style={{
-                        marginBottom: 100, // espaço final
-                        background: 'linear-gradient(to bottom, #1E293B, #0F172A)',
-                        border: '1px solid #3B82F6',
-                        boxShadow: '0 0 40px rgba(59, 130, 246, 0.1)',
-                    }}
-                >
-                    <h3 style={{ marginBottom: 14, fontSize: '1.1rem', color: '#60A5FA', fontWeight: 900 }}>
-                        {/* @ts-ignore */}
-                        {t(practical.actionTitleKey)}
-                    </h3>
-
-                    {!todaySaved ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <textarea
-                                value={todayText}
-                                onChange={(e) => setTodayText(e.target.value)}
-                                // @ts-ignore
-                                placeholder={t(practical.actionPlaceholderKey)}
-                                style={{
-                                    width: '100%',
-                                    minHeight: 120,
-                                    borderRadius: 16,
-                                    padding: 16,
-                                    background: 'rgba(0,0,0,0.3)',
-                                    border: '1px solid rgba(148,163,184,0.3)',
-                                    color: '#E2E8F0',
-                                    fontSize: '1rem',
-                                    lineHeight: '1.6',
-                                    resize: 'none',
-                                    outline: 'none',
-                                }}
-                            />
-                            <button
-                                onClick={handleSaveTodayText}
-                                style={{
-                                    alignSelf: 'flex-end',
-                                    background: '#3B82F6',
-                                    color: '#fff',
-                                    border: 'none',
-                                    padding: '12px 24px',
-                                    borderRadius: 99,
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
-                                }}
-                            >
-                                {/* @ts-ignore */}
-                                {t('common_save')}
-                            </button>
-                        </div>
-                    ) : (
-                        <div
-                            style={{
-                                background: 'rgba(34, 197, 94, 0.1)',
-                                border: '1px solid rgba(34, 197, 94, 0.3)',
-                                borderRadius: 16,
-                                padding: 16,
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                                <CheckCircle2 size={20} color="#4ADE80" />
-                                <span style={{ color: '#4ADE80', fontWeight: 800 }}>Registrado hoje!</span>
-                            </div>
-                            <p style={{ color: '#E2E8F0', fontStyle: 'italic', margin: 0 }}>"{todayText}"</p>
-                            <button
-                                onClick={handleClearTodayText}
-                                style={{
-                                    marginTop: 12,
-                                    background: 'transparent',
-                                    border: '1px solid rgba(148,163,184,0.3)',
-                                    color: '#94A3B8',
-                                    padding: '6px 12px',
-                                    borderRadius: 8,
-                                    fontSize: '0.8rem',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                {/* @ts-ignore */}
-                                {t('common_edit')}
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 

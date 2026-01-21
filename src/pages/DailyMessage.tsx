@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { aiService } from '../services/aiService';
 import { motion } from 'framer-motion';
-import { Sun, Loader, Copy } from 'lucide-react';
+import { Sun, Loader, Share2 } from 'lucide-react';
 
 const DailyMessage: React.FC = () => {
     const { dreams, language, t, dailyMessage, setDailyMessage, user } = useApp();
@@ -48,10 +48,34 @@ const DailyMessage: React.FC = () => {
         } catch (error) {
             console.error('[DailyMessage] Erro ao gerar mensagem:', error);
             setError(
-                t('error_generic') || 'Não foi possível gerar a mensagem agora.'
+                t('error_generic') || t('daily_msg_error_generating')
             );
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleShare = async () => {
+        if (!dailyMessage) return;
+
+        const textToShare = `🌙 *${t('interp_share_title')}*\n\n☀️ *${t('daily_msg_share_content_msg')}*\n${dailyMessage.message}\n\n💡 *${t('daily_msg_share_content_practice')}*\n${dailyMessage.practice}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: t('daily_msg_share_title'),
+                    text: textToShare,
+                });
+            } catch (err) {
+                console.warn('Share canceled or failed:', err);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(textToShare);
+                alert(t('copy_success'));
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
         }
     };
 
@@ -152,7 +176,7 @@ const DailyMessage: React.FC = () => {
                                 letterSpacing: -0.5
                             }}
                         >
-                            {dailyMessage.title || 'Sua Mensagem'}
+                            {dailyMessage.title || t('daily_msg_default_title')}
                         </h3>
 
                         <div style={{
@@ -192,7 +216,7 @@ const DailyMessage: React.FC = () => {
                                     marginBottom: 4,
                                     textTransform: 'uppercase'
                                 }}>
-                                    Prática de Atenção Plena:
+                                    {t('daily_msg_mindfulness_label')}
                                 </span>
                                 <p style={{ fontSize: '0.9rem', color: '#E5E7EB', lineHeight: 1.5 }}>
                                     {dailyMessage.practice}
@@ -201,25 +225,25 @@ const DailyMessage: React.FC = () => {
                         )}
 
                         <button
-                            onClick={() =>
-                                navigator.clipboard.writeText(
-                                    `${dailyMessage.title}\n\n${dailyMessage.message}\n\nPrática: ${dailyMessage.practice}` || ''
-                                )
-                            }
+                            onClick={handleShare}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 width: '100%',
-                                color: '#94A3B8',
-                                background: 'transparent',
-                                border: 'none',
+                                color: '#F6E05E',
+                                background: 'rgba(246, 224, 94, 0.1)',
+                                border: '1px solid rgba(246, 224, 94, 0.3)',
+                                borderRadius: 12,
+                                padding: '12px',
                                 cursor: 'pointer',
-                                fontSize: '0.85rem'
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                marginTop: 8
                             }}
                         >
-                            <Copy size={14} style={{ marginRight: 8 }} />{' '}
-                            Compartilhar Sabedoria
+                            <Share2 size={16} style={{ marginRight: 8 }} />{' '}
+                            {t('daily_msg_share_button')}
                         </button>
                     </motion.div>
                 ) : (
@@ -233,7 +257,7 @@ const DailyMessage: React.FC = () => {
                             className="text-muted"
                             style={{ marginBottom: 32, lineHeight: 1.6, color: '#94A3B8' }}
                         >
-                            Receba uma semente de sabedoria arquetípica para iluminar seu dia.
+                            {t('daily_msg_placeholder_text')}
                         </p>
 
                         {error && (
@@ -279,7 +303,7 @@ const DailyMessage: React.FC = () => {
                                             animation: 'spin 1s linear infinite',
                                         }}
                                     />
-                                    Gerando...
+                                    {t('daily_msg_loading')}
                                 </>
                             ) : (
                                 t('daily_message_generate')

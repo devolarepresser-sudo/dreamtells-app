@@ -85,7 +85,7 @@ const Symbols: React.FC = () => {
             await hybridStorage.saveSymbolDefinition(symbol.name, analysis);
         } catch (error) {
             console.error(error);
-            setAiAnalysis('Não foi possível analisar este símbolo no momento.');
+            setAiAnalysis(t('symbols_error_analysis'));
         } finally {
             setIsLoadingAnalysis(false);
         }
@@ -126,7 +126,7 @@ const Symbols: React.FC = () => {
                                 marginBottom: 4,
                             }}
                         >
-                            Símbolos dos seus sonhos
+                            {t('symbols_headline_title')}
                         </h2>
                         <p
                             style={{
@@ -135,8 +135,7 @@ const Symbols: React.FC = () => {
                                 lineHeight: 1.4,
                             }}
                         >
-                            Aqui aparecem apenas símbolos que já foram identificados em sonhos
-                            interpretados pela IA.
+                            {t('symbols_headline_desc')}
                         </p>
                     </div>
 
@@ -160,7 +159,7 @@ const Symbols: React.FC = () => {
                         />
                         <input
                             type="text"
-                            placeholder="Buscar em seus símbolos..."
+                            placeholder={t('symbols_search_placeholder')}
                             className="input-field"
                             style={{
                                 width: '100%',
@@ -192,11 +191,11 @@ const Symbols: React.FC = () => {
                         >
                             {aggregatedSymbols.length === 0 ? (
                                 <p>
-                                    Nenhum símbolo encontrado ainda. <br />
-                                    Interprete seus sonhos para popular esta lista.
+                                    {t('symbols_empty_list_title')} <br />
+                                    {t('symbols_empty_list_desc')}
                                 </p>
                             ) : (
-                                <p>Nenhum símbolo corresponde à busca.</p>
+                                <p>{t('symbols_no_match')}</p>
                             )}
                         </div>
                     )}
@@ -298,7 +297,7 @@ const Symbols: React.FC = () => {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    Toque para análise profunda
+                                    {t('symbols_tap_for_analysis')}
                                 </div>
                             </motion.div>
                         ))}
@@ -414,7 +413,7 @@ const Symbols: React.FC = () => {
                                                         fontSize: '0.9rem',
                                                     }}
                                                 >
-                                                    Consultando o oráculo simbólico...
+                                                    {t('symbols_analysis_loading')}
                                                 </p>
                                             </div>
                                         ) : aiAnalysis ? (
@@ -429,7 +428,7 @@ const Symbols: React.FC = () => {
                                                         letterSpacing: '0.12em',
                                                     }}
                                                 >
-                                                    Simbolismo Profundo
+                                                    {t('symbols_analysis_title')}
                                                 </h4>
                                                 <p
                                                     style={{
@@ -456,7 +455,7 @@ const Symbols: React.FC = () => {
                                                             marginBottom: 6,
                                                         }}
                                                     >
-                                                        Aparições recentes:
+                                                        {t('symbols_recent_appearances')}
                                                     </h4>
                                                     <ul
                                                         style={{
@@ -476,7 +475,7 @@ const Symbols: React.FC = () => {
                                             </div>
                                         ) : (
                                             <p style={{ color: '#EF4444', fontSize: '0.9rem' }}>
-                                                Erro ao carregar análise. Tente novamente.
+                                                {t('symbols_error_loading')}
                                             </p>
                                         )}
                                     </div>

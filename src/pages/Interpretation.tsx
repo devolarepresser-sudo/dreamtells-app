@@ -254,12 +254,23 @@ const Interpretation: React.FC = () => {
     const handleShare = async () => {
         if (!view || !dream) return;
 
-        const textToShare = `🌙 *DreamTells Sonho*\n\n"${dream.text}"\n\n✨ *Interpretação:*\n${view.main}\n\n💡 *Conselho:*\n${view.advice}`;
+        let textToShare = `🌙 *${t('interp_share_title')}*\n\n"${dream.text}"\n\n✨ *${t('menu_interpretation')}:*\n${view.main}\n\n💡 *${t('interp_section_advice')}:*\n${view.advice}`;
+
+        // Incluindo o aprofundamento se existir
+        if (view.deepAnalysis) {
+            textToShare += `\n\n🔍 *Aprofundamento (Mergulho no Inconsciente):*`;
+            view.deepAnalysis.deepInsights.forEach(insight => {
+                textToShare += `\n- *${insight.title}:* ${insight.content}`;
+            });
+            if (view.deepAnalysis.finalIntegration) {
+                textToShare += `\n\n*${t('interp_share_final_integration')}* ${view.deepAnalysis.finalIntegration}`;
+            }
+        }
 
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Meu Sonho - DreamTells',
+                    title: t('interp_share_title'),
                     text: textToShare,
                 });
             } catch (err) {
@@ -268,7 +279,7 @@ const Interpretation: React.FC = () => {
         } else {
             try {
                 await navigator.clipboard.writeText(textToShare);
-                alert('Conteúdo copiado para a área de transferência!');
+                alert(t('copy_success'));
             } catch (err) {
                 console.error('Failed to copy:', err);
             }
@@ -279,7 +290,7 @@ const Interpretation: React.FC = () => {
     if (!dream) {
         return (
             <Layout
-                title="Interpretação do Sonho"
+                title={t('interp_page_title')}
                 icon={<Sparkles size={18} color="#F9FAFB" />}
             >
                 <div
@@ -300,7 +311,7 @@ const Interpretation: React.FC = () => {
                             color: '#CBD5E1',
                         }}
                     >
-                        Não foi possível encontrar este sonho.
+                        {t('interp_not_found')}
                     </p>
                     <button
                         onClick={() => navigate('/history')}
@@ -318,10 +329,10 @@ const Interpretation: React.FC = () => {
                         }}
                     >
                         <ArrowLeft size={18} />
-                        Voltar para o histórico
+                        {t('interp_back_history')}
                     </button>
                 </div>
-            </Layout>
+            </Layout >
         );
     }
 
@@ -329,7 +340,7 @@ const Interpretation: React.FC = () => {
 
     return (
         <Layout
-            title="Interpretação do Sonho"
+            title={t('interp_page_title')}
             icon={<Sparkles size={18} color="#F9FAFB" />}
         >
             <div
@@ -391,7 +402,7 @@ const Interpretation: React.FC = () => {
                                         letterSpacing: '-0.03em',
                                     }}
                                 >
-                                    Interpretação do Sonho
+                                    {t('interp_page_title')}
                                 </h2>
                                 <p
                                     style={{
@@ -399,7 +410,7 @@ const Interpretation: React.FC = () => {
                                         color: 'rgba(226,232,240,0.82)',
                                     }}
                                 >
-                                    Análise detalhada do sonho que você acabou de registrar.
+                                    {t('interp_page_subtitle')}
                                 </p>
                             </div>
                         </div>
@@ -415,7 +426,7 @@ const Interpretation: React.FC = () => {
                                 textDecoration: 'underline',
                             }}
                         >
-                            Ver histórico
+                            {t('interp_view_history')}
                         </button>
                     </motion.div>
 
@@ -440,7 +451,7 @@ const Interpretation: React.FC = () => {
                                 marginBottom: 6,
                             }}
                         >
-                            Sonho registrado
+                            {t('interp_dream_recorded')}
                         </h3>
                         <p
                             style={{
@@ -474,7 +485,7 @@ const Interpretation: React.FC = () => {
                                     fontWeight: 600,
                                 }}
                             >
-                                Interpretação indisponível
+                                {t('interp_unavailable_title')}
                             </h3>
                             <p
                                 style={{
@@ -483,8 +494,7 @@ const Interpretation: React.FC = () => {
                                     fontSize: '0.95rem',
                                 }}
                             >
-                                Ainda não foi possível carregar uma interpretação detalhada para
-                                este sonho. Tente salvar um novo sonho ou verifique sua conexão.
+                                {t('interp_unavailable_desc')}
                             </p>
                         </motion.div>
                     )}
@@ -514,7 +524,7 @@ const Interpretation: React.FC = () => {
                                             fontWeight: 700,
                                         }}
                                     >
-                                        Núcleo da interpretação
+                                        {t('interp_section_core')}
                                     </h3>
                                     <p
                                         style={{
@@ -551,7 +561,7 @@ const Interpretation: React.FC = () => {
                                             fontWeight: 700,
                                         }}
                                     >
-                                        Simbologia principal do sonho
+                                        {t('interp_section_symbols')}
                                     </h3>
                                     <ul
                                         style={{
@@ -594,7 +604,7 @@ const Interpretation: React.FC = () => {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        Emoções associadas ao sonho
+                                        {t('interp_section_emotions')}
                                     </h3>
                                     <div
                                         style={{
@@ -644,7 +654,7 @@ const Interpretation: React.FC = () => {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        Áreas da vida mais conectadas a este sonho
+                                        {t('interp_section_life_areas')}
                                     </h3>
                                     <div
                                         style={{
@@ -694,7 +704,7 @@ const Interpretation: React.FC = () => {
                                             fontWeight: 700,
                                         }}
                                     >
-                                        Conselho da interpretação / contexto de vida
+                                        {t('interp_section_advice')}
                                     </h3>
                                     <p
                                         style={{

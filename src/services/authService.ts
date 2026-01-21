@@ -141,20 +141,32 @@ export const authService = {
 
         const userRef = doc(db, "users", firebaseUser.uid);
         let userData: User | null = null;
-        try {
-            console.log("[AUTH SERVICE] Fetching user doc from Firestore...");
-            const userDoc = await getDoc(userRef);
-            console.log("[AUTH SERVICE] Firestore getDoc finished. Exists:", userDoc.exists());
+        let userDocSnapshot: any = null;
 
-            if (userDoc.exists()) {
-                userData = userDoc.data() as User;
+        try {
+            console.log("[AUTH SERVICE] Fetching user doc from Firestore (with timeout)...");
+            // Race condition: Firestore vs Timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Firestore timeout")), 2500)
+            );
+
+            userDocSnapshot = await Promise.race([
+                getDoc(userRef),
+                timeoutPromise
+            ]) as any;
+
+            console.log("[AUTH SERVICE] Firestore getDoc finished. Exists:", userDocSnapshot.exists());
+
+            if (userDocSnapshot && userDocSnapshot.exists()) {
+                userData = userDocSnapshot.data() as User;
 
                 // ✅ Master override
                 if (force) {
                     // atualiza firestore só se não estiver master
                     if (String((userData as any).plan) !== "master") {
                         try {
-                            await updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any);
+                            // Não bloqueia o login se falhar
+                            updateDoc(userRef, { plan: "master" as any, isPremium: true, isTrialActive: false } as any).catch(e => console.warn(e));
                         } catch (e) { console.warn("Failed to update master plan", e); }
                     }
                     userData = applyForcedPremium(userData);
@@ -166,11 +178,11 @@ export const authService = {
                 return userData;
             }
         } catch (error) {
-            console.warn("Firestore error (likely offline):", error);
-            // Fallthrough to create valid temp user
+            console.warn("Firestore fetch error or timeout:", error);
+            // Continua para o fallback
         }
 
-        // Fallback se doc não existir
+        // Fallback se doc não existir ou timeout
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -193,7 +205,7 @@ export const authService = {
         const newUser = force ? applyForcedPremium(newUserBase) : newUserBase;
         // Tenta salvar, mas não bloqueia se falhar
         try {
-            await setDoc(userRef, newUser);
+            setDoc(userRef, newUser).catch(e => console.warn("Background save failed", e));
         } catch (e) {
             console.warn("Failed to create user doc (offline)", e);
         }
@@ -208,21 +220,36 @@ export const authService = {
     },
 
     getUserData: async (uid: string): Promise<User | null> => {
-        const userDoc = await getDoc(doc(db, "users", uid));
-        if (!userDoc.exists()) return null;
-
-        let userData = userDoc.data() as User;
-
-        // ✅ Se a flag local estiver ativa, força premium também
         try {
-            if (localStorage.getItem(DEV_FORCE_PREMIUM_KEY) === "1") {
-                userData = applyForcedPremium(userData);
-                return userData;
-            }
-        } catch { }
+            // Race condition: Firestore vs Timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Firestore timeout")), 2500)
+            );
 
-        userData = checkTrialExpiration(userData);
-        return userData;
+            // @ts-ignore
+            const userDoc = await Promise.race([
+                getDoc(doc(db, "users", uid)),
+                timeoutPromise
+            ]) as any;
+
+            if (!userDoc.exists()) return null;
+
+            let userData = userDoc.data() as User;
+
+            // ✅ Se a flag local estiver ativa, força premium também
+            try {
+                if (localStorage.getItem(DEV_FORCE_PREMIUM_KEY) === "1") {
+                    userData = applyForcedPremium(userData);
+                    return userData;
+                }
+            } catch { }
+
+            userData = checkTrialExpiration(userData);
+            return userData;
+        } catch (err) {
+            console.warn("[AUTH] getUserData timed out or failed:", err);
+            return null; // AppContext vai tratar isso e usar fallback ou cache local
+        }
     },
 
     updateUser: async (user: User) => {

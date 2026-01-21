@@ -32,12 +32,10 @@ const Layout = ({
             <header
                 className="headerPremium"
                 style={{
-                    position: "fixed",
-                    top: 0,
-                    left: "50%",
-                    transform: "translateX(-50%)",
+                    position: "relative",
                     width: "100%",
                     maxWidth: 480,
+                    margin: "0 auto",
                     padding: multiline ? "0 12px 14px" : "16px 12px 14px",
                     // ✅ Suporte a Safe Area (Notch/Status Bar)
                     paddingTop: "max(16px, env(safe-area-inset-top))",
@@ -161,8 +159,8 @@ const Layout = ({
             <main
                 className="page-content"
                 style={{
-                    // ✅ Empurra o conteúdo para baixo considerando o notch + altura do header
-                    paddingTop: `calc(${multiline ? 136 : 126}px + env(safe-area-inset-top))`,
+                    // ✅ Sem padding fixo no topo, pois o header relativo ocupa seu espaço
+                    paddingTop: 10,
                 }}
             >
                 {children}

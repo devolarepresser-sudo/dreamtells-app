@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
-import { Sparkles, Brain, Mic, TrendingUp, Shield, Crown, ChevronRight, Check } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { Sparkles, Brain, Mic, Shield, Crown, ChevronRight, Activity, Library, Compass } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PaywallProps {
@@ -8,44 +9,59 @@ interface PaywallProps {
 }
 
 const Paywall: React.FC<PaywallProps> = () => {
+    const { t } = useApp();
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSubscribe = () => {
         setIsLoading(true);
         setTimeout(() => {
-            alert('Em breve: Conexão com sistema de pagamentos.');
+            alert(t('paywall_payment_soon'));
             setIsLoading(false);
         }, 1500);
     };
 
     const features = [
         {
-            icon: <Brain size={24} className="text-purple-400" />,
-            title: "Interpretação Profunda",
-            desc: "Psicologia e arquétipos para entender o real significado.",
-            color: "rgba(168, 85, 247, 0.15)",
-            border: "rgba(168, 85, 247, 0.3)"
+            icon: <Activity size={24} color="#FFEDD5" />, // Vibrant light color
+            title: t('paywall_feature_emotional_diag_title'),
+            desc: t('paywall_feature_emotional_diag_desc'),
+            color: "rgba(244, 63, 94, 0.3)", // More vibrant background
+            border: "rgba(244, 63, 94, 0.5)"
         },
         {
-            icon: <TrendingUp size={24} className="text-blue-400" />,
-            title: "Padrões Ocultos",
-            desc: "Identifique temas recorrentes que seu subconsciente repete.",
-            color: "rgba(59, 130, 246, 0.15)",
-            border: "rgba(59, 130, 246, 0.3)"
+            icon: <Brain size={24} color="#F3E8FF" />,
+            title: t('paywall_feature_unconscious_dive_title'),
+            desc: t('paywall_feature_unconscious_dive_desc'),
+            color: "rgba(168, 85, 247, 0.3)",
+            border: "rgba(168, 85, 247, 0.5)"
         },
         {
-            icon: <Mic size={24} className="text-emerald-400" />,
-            title: "Voz Ilimitada",
-            desc: "Fale seus sonhos. Transcrição e análise instantânea.",
-            color: "rgba(16, 185, 129, 0.15)",
-            border: "rgba(16, 185, 129, 0.3)"
+            icon: <Compass size={24} color="#E0F2FE" />,
+            title: t('paywall_feature_soul_map_title'),
+            desc: t('paywall_feature_soul_map_desc'),
+            color: "rgba(59, 130, 246, 0.3)",
+            border: "rgba(59, 130, 246, 0.5)"
         },
         {
-            icon: <Sparkles size={24} className="text-amber-400" />,
-            title: "Relatórios de Fase",
-            desc: "Descubra qual arquétipo rege seu momento de vida atual.",
-            color: "rgba(245, 158, 11, 0.15)",
-            border: "rgba(245, 158, 11, 0.3)"
+            icon: <Sparkles size={24} color="#FEF3C7" />,
+            title: t('paywall_feature_daily_msg_title'),
+            desc: t('paywall_feature_daily_msg_desc'),
+            color: "rgba(245, 158, 11, 0.3)",
+            border: "rgba(245, 158, 11, 0.5)"
+        },
+        {
+            icon: <Library size={24} color="#ECFDF5" />,
+            title: t('paywall_feature_symbols_lib_title'),
+            desc: t('paywall_feature_symbols_lib_desc'),
+            color: "rgba(16, 185, 129, 0.3)",
+            border: "rgba(16, 185, 129, 0.5)"
+        },
+        {
+            icon: <Mic size={24} color="#CFFAFE" />,
+            title: t('paywall_feature_voice_title'),
+            desc: t('paywall_feature_voice_desc'),
+            color: "rgba(6, 182, 212, 0.3)",
+            border: "rgba(6, 182, 212, 0.5)"
         }
     ];
 
@@ -141,7 +157,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                                 letterSpacing: '-0.02em',
                             }}
                         >
-                            Desbloqueie Sua Mente
+                            {t('paywall_hero_title')}
                         </motion.h1>
 
                         <motion.p
@@ -156,7 +172,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                                 margin: 0,
                             }}
                         >
-                            Transforme intuição em <span style={{ color: '#FCD34D', fontWeight: 600 }}>direção clara</span> com análise arquetípica avançada.
+                            {t('paywall_hero_subtitle_start')} <span style={{ color: '#FCD34D', fontWeight: 600 }}>{t('paywall_hero_subtitle_highlight')}</span> {t('paywall_hero_subtitle_end')}
                         </motion.p>
                     </div>
 
@@ -238,7 +254,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                     >
                         <Shield size={16} color="#94A3B8" />
                         <span style={{ color: '#94A3B8', fontSize: '0.85rem' }}>
-                            Privacidade total. Seus dados são criptografados.
+                            {t('paywall_privacy')}
                         </span>
                     </motion.div>
 
@@ -271,7 +287,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                             }}
                         >
                             {isLoading ? (
-                                <span>Processando...</span>
+                                <span>{t('paywall_processing')}</span>
                             ) : (
                                 <>
                                     <div style={{
@@ -279,7 +295,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                                         top: 0, left: 0, right: 0, height: '1px',
                                         background: 'rgba(255,255,255,0.3)'
                                     }} />
-                                    <span>Começar Jornada Premium</span>
+                                    <span>{t('paywall_cta_start')}</span>
                                     <ChevronRight size={20} />
                                 </>
                             )}
@@ -290,7 +306,7 @@ const Paywall: React.FC<PaywallProps> = () => {
                             color: '#64748B',
                             fontSize: '0.8rem'
                         }}>
-                            7 dias grátis. Cancele quando quiser.
+                            {t('paywall_trial_text')}
                         </p>
                     </div>
                 </div>
