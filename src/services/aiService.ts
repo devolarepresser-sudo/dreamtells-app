@@ -342,26 +342,24 @@ const interpretDreamStub = async (text: string): Promise<InterpretationResult> =
     return new Promise((resolve) => {
         setTimeout(() => {
             resolve({
-                dreamTitle: 'O Eco do Silêncio',
-                interpretationMain: `Há uma quietude neste sonho que reverbera o que você tem evitado sentir nos últimos dias.
+                dreamTitle: 'O Grito Mudo',
+                interpretationMain: `Há um peso esmagador no seu peito que este sonho está finalmente dando forma.
 
-Algo dentro de você está pedindo uma pausa, uma trégua na guerra que você trava consigo mesmo para ser produtivo o tempo todo.
+Você tem aguentado situações insustentáveis fingindo que "está tudo sob controle", mas seu inconsciente está gritando que o controle já se perdeu.
 
-Você vive a tensão entre o desejo de descanso profundo e a culpa corrosiva de "não estar fazendo o suficiente".
+A verdade é que você não está cansado de fazer coisas; você está exausto de segurar uma máscara de força que já não lhe serve mais.
 
-Você pode estar evitando reconhecer que seu valor não reside no que você produz, mas em quem você é quando nada faz.
+O sonho revela que sua exaustão não é apenas física, é um grito da sua alma pedindo para apenas 'ser'.
 
-Esse sonho revela que sua exaustão não é apenas física, é um grito da sua alma pedindo para apenas 'ser'.
-
-Qual é a primeira coisa que você deixaria de fazer hoje se acreditasse, de verdade, que já é bom o suficiente?`,
+Qual é a única fraqueza que você jamais admitiria para ninguém, mas que se você soltasse, te faria respirar de novo?`,
                 symbols: [
-                    { name: 'Sala Vazia', meaning: 'O espaço interno que você teme visitar para não encontrar sua própria solidão.' },
-                    { name: 'Relógio Parado', meaning: 'O convite do seu inconsciente para sair do tempo cronológico e entrar no tempo da alma.' }
+                    { name: 'Sala Vazia', meaning: 'O espaço que você esvaziou de si mesmo para caber nas expectativas dos outros.' },
+                    { name: 'Grito sem Som', meaning: 'Todas as vezes que você disse "sim" quando sua alma gritava "não".' }
                 ],
-                emotions: ['Cansaço existencial', 'Culpa oculta', 'Anseio por paz'],
-                lifeAreas: ['Autoestima', 'Carreira', 'Saúde Mental'],
-                advice: 'Desligue o cronômetro interno. Hoje, faça algo inútil e prazeroso apenas porque você merece existir sem produzir.',
-                tags: ['pausa', 'valor pessoal', 'exaustão'],
+                emotions: ['Exaustão de papel', 'Solidão acompanhada', 'Desejo de verdade'],
+                lifeAreas: ['Identidade', 'Limites', 'Saúde Emocional'],
+                advice: 'Pare de ser forte por um dia. Apenas por hoje, deixe alguém cuidar de você.',
+                tags: ['máscaras', 'limites', 'verdade interna'],
                 language: 'pt',
             });
         }, 1500);
