@@ -139,20 +139,46 @@ const Home: React.FC = () => {
                             }}
                         />
                         <div style={{ position: 'relative' }}>
-                            <p
-                                style={{
-                                    fontSize: '0.8rem',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.14em',
-                                    color: 'rgba(226,232,240,0.9)',
-                                    marginBottom: 6,
-                                    fontWeight: 600,
-                                }}
-                            >
-                                {user
-                                    ? `${t('home_welcome')}, ${user.name || 'Explorador(a)'}`
-                                    : t('home_welcome_generic')}
-                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                                {/* Avatar Pequeno na Home */}
+                                <div
+                                    style={{
+                                        width: 42,
+                                        height: 42,
+                                        borderRadius: '50%',
+                                        background: user?.photoURL
+                                            ? `url(${user.photoURL}) center/cover no-repeat`
+                                            : 'linear-gradient(135deg,#5A3EF2,#46E4E1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '1rem',
+                                        fontWeight: 700,
+                                        color: '#FFF',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                                        flexShrink: 0,
+                                        border: '1.5px solid rgba(255,255,255,0.2)'
+                                    }}
+                                >
+                                    {!user?.photoURL && (user?.name?.[0] || 'D')}
+                                </div>
+
+                                <p
+                                    style={{
+                                        fontSize: '0.85rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.08em',
+                                        color: 'rgba(226,232,240,0.9)',
+                                        fontWeight: 600,
+                                        margin: 0
+                                    }}
+                                >
+                                    {user
+                                        ? `${t('home_welcome')}, ${user.name || 'Explorador(a)'}`
+                                        : t('home_welcome_generic')}
+                                </p>
+                            </div>
+
                             <h2
                                 style={{
                                     fontSize: '1.8rem',
@@ -428,8 +454,8 @@ const Home: React.FC = () => {
                     )}
                 </div>
 
-            </motion.div>
-        </Layout>
+            </motion.div >
+        </Layout >
     );
 };
 

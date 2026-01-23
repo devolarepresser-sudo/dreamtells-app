@@ -18,7 +18,11 @@ import {
     XCircle,
     PenLine,
     RefreshCcw,
+    Copy,
+    Send,
+    X
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
 /**
  * Diagnóstico Emocional (Stats.tsx)
@@ -253,6 +257,7 @@ const Stats: React.FC = () => {
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
+    const [showShareMenu, setShowShareMenu] = useState(false);
 
     // Modal do “fase de vida” (usamos como motor de diagnóstico IA — já funciona no seu backend)
     const [showDeepAnalysis, setShowDeepAnalysis] = useState(false);
@@ -406,27 +411,21 @@ const Stats: React.FC = () => {
     };
 
     // Share do diagnóstico gerado
-    const handleShare = async () => {
-        if (!diagnosisAI) return;
-
-        const title = diagnosisAI.phaseTitle || diagnosisAI.phaseName || 'Diagnóstico Emocional';
+    const getShareText = () => {
+        if (!diagnosisAI) return '';
+        const userName = user?.name || 'Explorador(a)';
         const archetype = diagnosisAI.archetype || '—';
         const summary = diagnosisAI.summary || diagnosisAI.description || '';
         const challenge = diagnosisAI.mainChallenge || (Array.isArray(diagnosisAI.keyChallenges) ? diagnosisAI.keyChallenges[0] : '') || '';
         const guidance = diagnosisAI.advice || diagnosisAI.guidance || '';
 
-        // @ts-ignore
-        const textToShare = t('stats_share_text', {
-            title,
-            archetype,
-            summary,
-            challenge: challenge || '-',
-            guidance: guidance || '-'
-        });
+        return `✨ *DreamTells* ✨\n👤 Jornada de: ${userName}\n\n📊 *DIAGNÓSTICO EMOCIONAL*\nArquétipo: ${archetype} 🛡️\n\n🔍 *Resumo:*\n“${summary}”\n\n🧭 *Desafio Principal:*\n${challenge || '-'}\n\n💡 *Direção Prática:*\n${guidance || '-'}\n\n---\n🧠 *Como está seu mundo interno hoje?*`;
+    };
 
-        // @ts-ignore
+    const handleShareNative = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
         const shareTitle = t('stats_share_title');
-
         if (navigator.share) {
             try {
                 await navigator.share({ title: shareTitle, text: textToShare });
@@ -434,14 +433,18 @@ const Stats: React.FC = () => {
                 // ignore cancel
             }
         } else {
-            try {
-                await navigator.clipboard.writeText(textToShare);
-                // @ts-ignore
-                alert(t('stats_share_copied'));
-            } catch {
-                // @ts-ignore
-                alert(t('stats_share_error'));
-            }
+            handleCopy();
+        }
+    };
+
+    const handleCopy = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
+        try {
+            await navigator.clipboard.writeText(textToShare);
+            alert(t('stats_share_copied'));
+        } catch {
+            alert(t('stats_share_error'));
         }
     };
 

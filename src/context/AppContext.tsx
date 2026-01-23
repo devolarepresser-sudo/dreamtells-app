@@ -18,6 +18,8 @@ import de from '../locales/de.json';
 import { FREE_DEV_MODE } from '../config/featureFlags';
 import { hybridStorage } from '../services/hybridStorage';
 
+import i18n from '../i18n'; // Importação do i18n configurado
+
 const locales = { pt, es, en, fr, it, de };
 
 // ✅ Sem nuvem para perfil por enquanto (só login online)
@@ -57,6 +59,7 @@ interface AppContextType {
     canUsePremium: () => boolean;
     activatePremium: () => Promise<void>;
     canInterpret: () => boolean;
+    updateProfile: (name: string, photoURL?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -77,7 +80,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             try {
                 // Idioma
                 const storedLang = (await hybridStorage.getLanguage()) as Language;
-                if (storedLang) setLanguageState(storedLang);
+                if (storedLang) {
+                    setLanguageState(storedLang);
+                    i18n.changeLanguage(storedLang); // Sincroniza i18n
+                } else {
+                    i18n.changeLanguage('pt'); // Default fixo
+                }
 
                 // Mensagem diária
                 const storedMsg = await hybridStorage.getItem('dreamtells_daily_msg');
@@ -156,6 +164,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const setLanguage = async (lang: Language) => {
         setLanguageState(lang);
+        i18n.changeLanguage(lang); // Atualiza i18next quando usuário muda no profile
         await hybridStorage.saveLanguage(lang);
     };
 
@@ -205,6 +214,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const canInterpret = (): boolean => canUsePremium();
+
+    const updateProfile = async (name: string, photoURL?: string) => {
+        if (!user) return;
+
+        const updatedUser: User = {
+            ...user,
+            name,
+            photoURL: photoURL || user.photoURL,
+        };
+
+        setUser(updatedUser);
+        await hybridStorage.saveUser(updatedUser);
+        if (!LOCAL_ONLY_PROFILE) {
+            await authService.updateUser(updatedUser);
+        }
+    };
 
     const addDream = async (
         text: string,
@@ -323,6 +348,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 canUsePremium,
                 activatePremium,
                 canInterpret,
+                updateProfile,
             }}
         >
             {children}

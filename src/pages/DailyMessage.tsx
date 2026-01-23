@@ -10,6 +10,7 @@ const DailyMessage: React.FC = () => {
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showShareMenu, setShowShareMenu] = useState(false);
 
     // Mantemos esse formato de data porque é o que você já usa no estado:
     const today = new Date().toDateString();
@@ -55,11 +56,15 @@ const DailyMessage: React.FC = () => {
         }
     };
 
-    const handleShare = async () => {
-        if (!dailyMessage) return;
+    const getShareText = () => {
+        if (!dailyMessage) return '';
+        const userName = user?.name || 'Explorador(a)';
+        return `✨ *DreamTells* ✨\n👤 Inspirado(a): ${userName}\n\n☀️ *${t('daily_message_title').toUpperCase()}*\n\n"${dailyMessage.title}"\n\n☀️ *${t('daily_msg_share_content_msg')}:*\n${dailyMessage.message}\n\n💡 *${t('daily_msg_share_content_practice')}:*\n${dailyMessage.practice}\n\n---\n🌈 *O que o Oráculo tem para você hoje?*`;
+    };
 
-        const textToShare = `🌙 *${t('interp_share_title')}*\n\n☀️ *${t('daily_msg_share_content_msg')}*\n${dailyMessage.message}\n\n💡 *${t('daily_msg_share_content_practice')}*\n${dailyMessage.practice}`;
-
+    const handleShareNative = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -70,12 +75,18 @@ const DailyMessage: React.FC = () => {
                 console.warn('Share canceled or failed:', err);
             }
         } else {
-            try {
-                await navigator.clipboard.writeText(textToShare);
-                alert(t('copy_success'));
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
+            handleCopy();
+        }
+    };
+
+    const handleCopy = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
+        try {
+            await navigator.clipboard.writeText(textToShare);
+            alert(t('copy_success'));
+        } catch (err) {
+            console.error('Failed to copy:', err);
         }
     };
 
@@ -224,27 +235,121 @@ const DailyMessage: React.FC = () => {
                             </div>
                         )}
 
-                        <button
-                            onClick={handleShare}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '100%',
-                                color: '#F6E05E',
-                                background: 'rgba(246, 224, 94, 0.1)',
-                                border: '1px solid rgba(246, 224, 94, 0.3)',
-                                borderRadius: 12,
-                                padding: '12px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                fontWeight: 600,
-                                marginTop: 8
-                            }}
-                        >
-                            <Share2 size={16} style={{ marginRight: 8 }} />{' '}
-                            {t('daily_msg_share_button')}
-                        </button>
+                        <div style={{ position: 'relative', width: '100%', marginTop: 8 }}>
+                            <button
+                                onClick={() => setShowShareMenu(!showShareMenu)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '100%',
+                                    color: '#F6E05E',
+                                    background: 'rgba(246, 224, 94, 0.1)',
+                                    border: '1px solid rgba(246, 224, 94, 0.3)',
+                                    borderRadius: 12,
+                                    padding: '12px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <Share2 size={16} style={{ marginRight: 8 }} />{' '}
+                                {t('daily_msg_share_button')}
+                            </button>
+
+                            <AnimatePresence>
+                                {showShareMenu && (
+                                    <>
+                                        <div
+                                            onClick={() => setShowShareMenu(false)}
+                                            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                marginBottom: 12,
+                                                background: '#1E293B',
+                                                borderRadius: 20,
+                                                padding: 8,
+                                                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                zIndex: 100,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: 4
+                                            }}
+                                        >
+                                            <button
+                                                onClick={handleShareNative}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12,
+                                                    padding: '12px 16px',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#F1F5F9',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    borderRadius: 12,
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <Send size={18} color="#F6E05E" />
+                                                Enviar para...
+                                            </button>
+                                            <button
+                                                onClick={handleCopy}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12,
+                                                    padding: '12px 16px',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#F1F5F9',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    borderRadius: 12,
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <Copy size={18} color="#F6AD55" />
+                                                Copiar texto
+                                            </button>
+                                            <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
+                                            <button
+                                                onClick={() => setShowShareMenu(false)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12,
+                                                    padding: '12px 16px',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: '#94A3B8',
+                                                    fontSize: '0.9rem',
+                                                    cursor: 'pointer',
+                                                    borderRadius: 12,
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                <X size={18} />
+                                                Cancelar
+                                            </button>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </motion.div>
                 ) : (
                     <div

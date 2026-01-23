@@ -6,8 +6,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { DreamEntry } from '../types';
-import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2, Copy, Send, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type AnyObj = Record<string, any>;
 
@@ -209,12 +209,13 @@ const itemVariants: Variants = {
 };
 
 const Interpretation: React.FC = () => {
-    const { dreams, t } = useApp();
+    const { dreams, user, t } = useApp();
     const navigate = useNavigate();
     const location = useLocation() as { state?: { dreamId?: string; dream?: DreamEntry } };
 
     // Estado para guardar o sonho salvo do localStorage (fallback)
     const [savedDream, setSavedDream] = useState<DreamEntry | undefined>(undefined);
+    const [showShareMenu, setShowShareMenu] = useState(false);
 
     const dreamFromState = location.state?.dream as DreamEntry | undefined;
     const dreamId = dreamFromState?.id ?? location.state?.dreamId;
@@ -251,22 +252,26 @@ const Interpretation: React.FC = () => {
 
     const view = useMemo(() => buildInterpretationView(dream), [dream]);
 
-    const handleShare = async () => {
-        if (!view || !dream) return;
+    const getShareText = () => {
+        const userName = user?.name || 'Explorador(a)';
+        let text = `✨ *DreamTells* ✨\n👤 Explorador(a): ${userName}\n\n🔮 *${t('menu_interpretation').toUpperCase()}*\n\n"${dream.text}"\n\n✨ *${t('interp_section_core')}:*\n${view.main}\n\n💡 *${t('interp_section_advice')}:*\n${view.advice}`;
 
-        let textToShare = `🌙 *${t('interp_share_title')}*\n\n"${dream.text}"\n\n✨ *${t('menu_interpretation')}:*\n${view.main}\n\n💡 *${t('interp_section_advice')}:*\n${view.advice}`;
-
-        // Incluindo o aprofundamento se existir
         if (view.deepAnalysis) {
-            textToShare += `\n\n🔍 *Aprofundamento (Mergulho no Inconsciente):*`;
+            text += `\n\n🔍 *Aprofundamento (Mergulho no Inconsciente):*`;
             view.deepAnalysis.deepInsights.forEach(insight => {
-                textToShare += `\n- *${insight.title}:* ${insight.content}`;
+                text += `\n- *${insight.title}:* ${insight.content}`;
             });
             if (view.deepAnalysis.finalIntegration) {
-                textToShare += `\n\n*${t('interp_share_final_integration')}* ${view.deepAnalysis.finalIntegration}`;
+                text += `\n\n*${t('interp_share_final_integration')}* ${view.deepAnalysis.finalIntegration}`;
             }
         }
+        text += `\n\n---\n🌌 *E você, já descobriu o que o DreamTells diz sobre você?*`;
+        return text;
+    };
 
+    const handleShareNative = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -277,12 +282,18 @@ const Interpretation: React.FC = () => {
                 console.warn('Share canceled or failed:', err);
             }
         } else {
-            try {
-                await navigator.clipboard.writeText(textToShare);
-                alert(t('copy_success'));
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
+            handleCopy();
+        }
+    };
+
+    const handleCopy = async () => {
+        const textToShare = getShareText();
+        setShowShareMenu(false);
+        try {
+            await navigator.clipboard.writeText(textToShare);
+            alert(t('copy_success'));
+        } catch (err) {
+            console.error('Failed to copy:', err);
         }
     };
 
@@ -929,34 +940,126 @@ const Interpretation: React.FC = () => {
 
 
 
-                            {/* Botão de Compartilhar (Novo, estilo Premium) */}
-                            <motion.button
-                                variants={itemVariants}
-                                whileHover={{ scale: 1.02, boxShadow: "0 8px 25px rgba(236, 72, 153, 0.5)" }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handleShare}
-                                style={{
-                                    marginTop: 24,
-                                    width: '100%',
-                                    padding: '16px 20px',
-                                    borderRadius: 18,
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)', // Pink to Purple
-                                    color: '#FFFFFF',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 8px 20px rgba(236, 72, 153, 0.35)',
-                                    fontWeight: 700,
-                                    fontSize: '1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 12,
-                                    letterSpacing: '0.02em',
-                                }}
-                            >
-                                <Share2 size={22} />
-                                Compartilhar descoberta
-                            </motion.button>
+                            <div style={{ position: 'relative', width: '100%', marginTop: 24 }}>
+                                <motion.button
+                                    whileHover={{ scale: 1.02, boxShadow: "0 8px 25px rgba(236, 72, 153, 0.5)" }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowShareMenu(!showShareMenu)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px 20px',
+                                        borderRadius: 18,
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)', // Pink to Purple
+                                        color: '#FFFFFF',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 8px 20px rgba(236, 72, 153, 0.35)',
+                                        fontWeight: 700,
+                                        fontSize: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 12,
+                                        letterSpacing: '0.02em',
+                                    }}
+                                >
+                                    <Share2 size={22} />
+                                    Compartilhar descoberta
+                                </motion.button>
+
+                                <AnimatePresence>
+                                    {showShareMenu && (
+                                        <>
+                                            <div
+                                                onClick={() => setShowShareMenu(false)}
+                                                style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                                            />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    bottom: '100%',
+                                                    left: 0,
+                                                    right: 0,
+                                                    marginBottom: 12,
+                                                    background: '#1E293B',
+                                                    borderRadius: 20,
+                                                    padding: 8,
+                                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                                    border: '1px solid rgba(255,255,255,0.1)',
+                                                    zIndex: 100,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: 4
+                                                }}
+                                            >
+                                                <button
+                                                    onClick={handleShareNative}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        padding: '12px 16px',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: '#F1F5F9',
+                                                        fontSize: '0.95rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        borderRadius: 12,
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    <Send size={18} color="#8B5CF6" />
+                                                    Enviar para...
+                                                </button>
+                                                <button
+                                                    onClick={handleCopy}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        padding: '12px 16px',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: '#F1F5F9',
+                                                        fontSize: '0.95rem',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        borderRadius: 12,
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    <Copy size={18} color="#EC4899" />
+                                                    Copiar texto
+                                                </button>
+                                                <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
+                                                <button
+                                                    onClick={() => setShowShareMenu(false)}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        padding: '12px 16px',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: '#94A3B8',
+                                                        fontSize: '0.9rem',
+                                                        cursor: 'pointer',
+                                                        borderRadius: 12,
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    <X size={18} />
+                                                    Cancelar
+                                                </button>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
 
                             {/* Botão para Aprofundar Sonho (Reativado) */}
                             {!view.deepAnalysis && (

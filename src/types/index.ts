@@ -25,6 +25,7 @@ export interface User {
     trialEnd: string | null;
     isTrialActive: boolean;
     isPremium: boolean;
+    photoURL?: string;
 }
 
 export interface SymbolDetail {

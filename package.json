@@ -22,9 +22,11 @@
     "express": "^5.1.0",
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
+    "i18next": "^25.8.0",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^16.5.3",
     "react-router-dom": "^7.9.6"
   },
   "devDependencies": {

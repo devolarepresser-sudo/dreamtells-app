@@ -1,20 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
-import { User, Globe, LogOut, Crown } from 'lucide-react';
+import { User, Globe, LogOut } from 'lucide-react';
 import { Language } from '../types';
 import Paywall from '../components/Paywall';
 import { AnimatePresence } from 'framer-motion';
 
 const Profile: React.FC = () => {
-    const { user, logout, language, setLanguage, t, canUsePremium } = useApp();
+    const { user, logout, language, setLanguage, t, canUsePremium, updateProfile } = useApp();
     const [showPaywall, setShowPaywall] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newName, setNewName] = useState(user?.name || '');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setLanguage(e.target.value as Language);
     };
 
     const hasAccess = canUsePremium();
+
+    const handleSaveName = async () => {
+        if (newName.trim() && user) {
+            try {
+                await updateProfile(newName.trim());
+                setIsEditingName(false);
+            } catch (error) {
+                console.error("Erro ao atualizar nome:", error);
+            }
+        } else {
+            setIsEditingName(false);
+        }
+    };
+
+    const handlePhotoClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && user) {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64String = reader.result as string;
+                try {
+                    await updateProfile(user.name, base64String);
+                } catch (error) {
+                    console.error("Erro ao atualizar foto:", error);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     return (
         <Layout
@@ -54,13 +90,16 @@ const Profile: React.FC = () => {
                             paddingTop: 8,
                         }}
                     >
-                        {/* Avatar premium */}
+                        {/* Avatar com upload */}
                         <div
+                            onClick={handlePhotoClick}
                             style={{
                                 width: 110,
                                 height: 110,
                                 borderRadius: '50%',
-                                background: 'linear-gradient(135deg,#5A3EF2,#46E4E1)',
+                                background: user?.photoURL
+                                    ? `url(${user.photoURL}) center/cover no-repeat`
+                                    : 'linear-gradient(135deg,#5A3EF2,#46E4E1)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -69,27 +108,21 @@ const Profile: React.FC = () => {
                                 color: '#FFF',
                                 boxShadow: '0 12px 32px rgba(90,62,242,0.55)',
                                 position: 'relative',
+                                cursor: 'pointer',
+                                overflow: 'hidden'
                             }}
                         >
-                            {user?.name?.[0] || 'D'}
+                            {!user?.photoURL && (user?.name?.[0] || 'D')}
 
-                            {hasAccess && (
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        right: 0,
-                                        background: '#F1C40F',
-                                        borderRadius: '50%',
-                                        padding: 6,
-                                        border: '2px solid #FFF',
-                                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                                    }}
-                                >
-                                    <Crown size={16} color="#FFF" />
-                                </div>
-                            )}
                         </div>
+
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                        />
 
                         <h2
                             style={{
@@ -157,15 +190,61 @@ const Profile: React.FC = () => {
                                 borderBottom: '1px solid rgba(148,163,184,0.2)',
                             }}
                         >
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                                 <User size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
-                                <span style={{ color: '#F9FAFB', fontWeight: 500 }}>
+                                <span style={{ color: '#F9FAFB', fontWeight: 500, marginRight: 8, whiteSpace: 'nowrap' }}>
                                     {t('name_placeholder')}
                                 </span>
+
+                                {isEditingName ? (
+                                    <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+                                        <input
+                                            type="text"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
+                                            autoFocus
+                                            style={{
+                                                background: 'rgba(30,41,59,0.8)',
+                                                border: '1px solid #60A5FA',
+                                                borderRadius: 8,
+                                                padding: '4px 12px',
+                                                color: '#FFF',
+                                                fontSize: '0.9rem',
+                                                width: '100%',
+                                                outline: 'none'
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveName();
+                                                if (e.key === 'Escape') setIsEditingName(false);
+                                            }}
+                                        />
+                                        <button
+                                            onClick={handleSaveName}
+                                            style={{ background: '#10B981', border: 'none', borderRadius: 6, color: '#FFF', padding: '4px 10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                                        >
+                                            {t('common_save')}
+                                        </button>
+                                        <button
+                                            onClick={() => { setIsEditingName(false); setNewName(user?.name || ''); }}
+                                            style={{ background: 'transparent', border: '1px solid #EF4444', borderRadius: 6, color: '#EF4444', padding: '4px 10px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                                        >
+                                            {t('common_cancel')}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: '0.9rem' }}>
+                                            {user?.name}
+                                        </span>
+                                        <button
+                                            onClick={() => { setIsEditingName(true); setNewName(user?.name || ''); }}
+                                            style={{ background: 'transparent', border: 'none', color: '#60A5FA', padding: '4px 8px', cursor: 'pointer', marginLeft: 4, visibility: 'visible' }}
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            <span style={{ color: 'rgba(226,232,240,0.7)', fontSize: '0.9rem' }}>
-                                {user?.name}
-                            </span>
                         </div>
 
                         {/* Idioma */}

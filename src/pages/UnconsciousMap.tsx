@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { useTranslation } from 'react-i18next';
 
 import { hybridStorage, UnconsciousMap as IUnconsciousMap } from '../services/hybridStorage';
 import { motion } from 'framer-motion';
@@ -90,6 +91,7 @@ const Question = ({ children }: { children: React.ReactNode }) => (
 );
 
 const UnconsciousMap: React.FC = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [msg, setMsg] = useState('');
@@ -170,7 +172,7 @@ const UnconsciousMap: React.FC = () => {
         const hasData = mapData.axisIdentity?.status || mapData.axisSecurity?.status;
 
         if (!hasData) {
-            setMsg('Preencha pelo menos um eixo para salvar.');
+            setMsg(t('map_v2_msg_error'));
             setTimeout(() => setMsg(''), 3000);
             return;
         }
@@ -182,17 +184,17 @@ const UnconsciousMap: React.FC = () => {
         });
 
         setIsLoading(false);
-        setMsg('Mapa calibrado com sucesso.');
+        setMsg(t('map_v2_msg_success'));
         setTimeout(() => {
             setMsg('');
             navigate('/home');
         }, 1500);
     };
 
-    if (isLoading) return <div style={{ padding: 40, textAlign: 'center', color: '#FFF' }}>Calibrando mapa...</div>;
+    if (isLoading) return <div style={{ padding: 40, textAlign: 'center', color: '#FFF' }}>{t('map_v2_loading')}</div>;
 
     return (
-        <Layout title="Mapa do Inconsciente" showBack icon={<Compass size={20} />}>
+        <Layout title={t('map_v2_title')} showBack icon={<Compass size={20} />}>
             <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 4px 60px' }}>
 
                 <p style={{
@@ -202,21 +204,21 @@ const UnconsciousMap: React.FC = () => {
                     marginBottom: 32,
                     padding: '16px',
                     background: 'rgba(30,41,59,0.3)',
-                    borderRadius: 12
+                    borderRadius: 12,
+                    whiteSpace: 'pre-line'
                 }}>
-                    Este não é um perfil pessoal.<br />
-                    É um retrato do seu momento interno — para que seus sonhos sejam compreendidos no tom certo.
+                    {t('map_v2_intro')}
                 </p>
 
                 {/* EIXO 1 */}
-                <Section title="EIXO 1 — Identidade Vivida">
-                    <Question>Como você se sente em relação a quem você é hoje?</Question>
+                <Section title={t('map_v2_axis_1_title')}>
+                    <Question>{t('map_v2_axis_1_question')}</Question>
                     {[
-                        'Alinhado comigo',
-                        'Em conflito comigo',
-                        'Em transição',
-                        'Me sinto dividido',
-                        'Não sei dizer'
+                        t('map_v2_axis_1_opt_1'),
+                        t('map_v2_axis_1_opt_2'),
+                        t('map_v2_axis_1_opt_3'),
+                        t('map_v2_axis_1_opt_4'),
+                        t('map_v2_axis_1_opt_5')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -226,21 +228,21 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Se quiser, descreva em poucas palavras."
+                        placeholder={t('map_v2_axis_1_placeholder')}
                         value={mapData.axisIdentity?.note || ''}
                         onChange={(e) => updateNote('axisIdentity', e.target.value)}
                     />
                 </Section>
 
                 {/* EIXO 2 */}
-                <Section title="EIXO 2 — Chão Interno (Segurança)">
-                    <Question>Como você se sente em relação à sua base de vida hoje?</Question>
+                <Section title={t('map_v2_axis_2_title')}>
+                    <Question>{t('map_v2_axis_2_question')}</Question>
                     {[
-                        'Enraizado',
-                        'Suspenso',
-                        'Sem chão',
-                        'Em reconstrução',
-                        'Protegido, mas inquieto'
+                        t('map_v2_axis_2_opt_1'),
+                        t('map_v2_axis_2_opt_2'),
+                        t('map_v2_axis_2_opt_3'),
+                        t('map_v2_axis_2_opt_4'),
+                        t('map_v2_axis_2_opt_5')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -250,22 +252,22 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Opcional: uma frase curta sobre sua segurança."
+                        placeholder={t('map_v2_axis_2_placeholder')}
                         value={mapData.axisSecurity?.note || ''}
                         onChange={(e) => updateNote('axisSecurity', e.target.value)}
                     />
                 </Section>
 
                 {/* EIXO 3 */}
-                <Section title="EIXO 3 — Vínculo Emocional">
-                    <Question>Como você vive seus vínculos hoje? (Até 2)</Question>
+                <Section title={t('map_v2_axis_3_title')}>
+                    <Question>{t('map_v2_axis_3_question')}</Question>
                     {[
-                        'Próximo',
-                        'Distante',
-                        'Em conflito',
-                        'Com medo de perder',
-                        'Com medo de se entregar',
-                        'Solitário mesmo acompanhado'
+                        t('map_v2_axis_3_opt_1'),
+                        t('map_v2_axis_3_opt_2'),
+                        t('map_v2_axis_3_opt_3'),
+                        t('map_v2_axis_3_opt_4'),
+                        t('map_v2_axis_3_opt_5'),
+                        t('map_v2_axis_3_opt_6')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -275,21 +277,21 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Opcional: uma frase sobre seus vínculos."
+                        placeholder={t('map_v2_axis_3_placeholder')}
                         value={mapData.axisBond?.note || ''}
                         onChange={(e) => updateNote('axisBond', e.target.value)}
                     />
                 </Section>
 
                 {/* EIXO 4 */}
-                <Section title="EIXO 4 — Movimento / Direção">
-                    <Question>Em relação à sua vida, você sente que está…</Question>
+                <Section title={t('map_v2_axis_4_title')}>
+                    <Question>{t('map_v2_axis_4_question')}</Question>
                     {[
-                        'Avançando',
-                        'Parado',
-                        'Indo contra mim',
-                        'Em mudança',
-                        'Não sei'
+                        t('map_v2_axis_4_opt_1'),
+                        t('map_v2_axis_4_opt_2'),
+                        t('map_v2_axis_4_opt_3'),
+                        t('map_v2_axis_4_opt_4'),
+                        t('map_v2_axis_4_opt_5')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -299,21 +301,21 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Opcional: uma frase sobre seu movimento."
+                        placeholder={t('map_v2_axis_4_placeholder')}
                         value={mapData.axisMovement?.note || ''}
                         onChange={(e) => updateNote('axisMovement', e.target.value)}
                     />
                 </Section>
 
                 {/* EIXO 5 */}
-                <Section title="EIXO 5 — Desejo">
-                    <Question>Em relação ao que você deseja, você sente que…</Question>
+                <Section title={t('map_v2_axis_5_title')}>
+                    <Question>{t('map_v2_axis_5_question')}</Question>
                     {[
-                        'Sei o que quero',
-                        'Tenho medo de querer',
-                        'Engoli meus desejos',
-                        'Estou redescobrindo',
-                        'Me sinto vazio'
+                        t('map_v2_axis_5_opt_1'),
+                        t('map_v2_axis_5_opt_2'),
+                        t('map_v2_axis_5_opt_3'),
+                        t('map_v2_axis_5_opt_4'),
+                        t('map_v2_axis_5_opt_5')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -323,21 +325,21 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Opcional: uma frase sobre seu desejo."
+                        placeholder={t('map_v2_axis_5_placeholder')}
                         value={mapData.axisDesire?.note || ''}
                         onChange={(e) => updateNote('axisDesire', e.target.value)}
                     />
                 </Section>
 
                 {/* EIXO 6 */}
-                <Section title="EIXO 6 — Energia Emocional">
-                    <Question>Seu estado emocional recente está mais próximo de…</Question>
+                <Section title={t('map_v2_axis_6_title')}>
+                    <Question>{t('map_v2_axis_6_question')}</Question>
                     {[
-                        'Expansão',
-                        'Cansaço',
-                        'Tensão',
-                        'Confusão',
-                        'Silêncio interno'
+                        t('map_v2_axis_6_opt_1'),
+                        t('map_v2_axis_6_opt_2'),
+                        t('map_v2_axis_6_opt_3'),
+                        t('map_v2_axis_6_opt_4'),
+                        t('map_v2_axis_6_opt_5')
                     ].map(opt => (
                         <RenderOption
                             key={opt}
@@ -347,7 +349,7 @@ const UnconsciousMap: React.FC = () => {
                         />
                     ))}
                     <RenderInput
-                        placeholder="Opcional: uma frase sobre sua energia."
+                        placeholder={t('map_v2_axis_6_placeholder')}
                         value={mapData.axisEnergy?.note || ''}
                         onChange={(e) => updateNote('axisEnergy', e.target.value)}
                     />
@@ -376,7 +378,7 @@ const UnconsciousMap: React.FC = () => {
                     }}
                 >
                     <Save size={20} />
-                    Salvar Calibragem
+                    {t('map_v2_save')}
                 </motion.button>
 
                 {msg && (
