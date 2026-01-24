@@ -6,8 +6,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { DreamEntry } from '../types';
-import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2, Copy, Send, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Sparkles, ChevronRight, Share2, Copy, Send, X, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { generateStoryCard } from '../services/shareService';
 
 type AnyObj = Record<string, any>;
 
@@ -216,6 +217,7 @@ const Interpretation: React.FC = () => {
     // Estado para guardar o sonho salvo do localStorage (fallback)
     const [savedDream, setSavedDream] = useState<DreamEntry | undefined>(undefined);
     const [showShareMenu, setShowShareMenu] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
     const dreamFromState = location.state?.dream as DreamEntry | undefined;
     const dreamId = dreamFromState?.id ?? location.state?.dreamId;
@@ -253,20 +255,58 @@ const Interpretation: React.FC = () => {
     const view = useMemo(() => buildInterpretationView(dream), [dream]);
 
     const getShareText = () => {
+        if (!dream) return '';
         const userName = user?.name || 'Explorador(a)';
-        let text = `✨ *DreamTells* ✨\n👤 Explorador(a): ${userName}\n\n🔮 *${t('menu_interpretation').toUpperCase()}*\n\n"${dream.text}"\n\n✨ *${t('interp_section_core')}:*\n${view.main}\n\n💡 *${t('interp_section_advice')}:*\n${view.advice}`;
 
-        if (view.deepAnalysis) {
-            text += `\n\n🔍 *Aprofundamento (Mergulho no Inconsciente):*`;
-            view.deepAnalysis.deepInsights.forEach(insight => {
-                text += `\n- *${insight.title}:* ${insight.content}`;
+        // @ts-ignore
+        return t('interp_share_text', {
+            userName,
+            dreamText: dream.text ? (dream.text.length > 100 ? dream.text.substring(0, 100) + '...' : dream.text) : '—',
+            main: view?.main || '—',
+            advice: view?.advice || '—'
+        });
+    };
+
+    const handleShareImage = async () => {
+        if (!view || !dream) return;
+        setIsGeneratingImage(true);
+        setShowShareMenu(false);
+
+        try {
+            const blob = await generateStoryCard({
+                // @ts-ignore
+                title: t('interp_page_title'),
+                subtitle: t('interp_section_core'),
+                mainValue: dream.text ? (dream.text.length > 50 ? dream.text.substring(0, 50) + '...' : dream.text) : 'Sonho',
+                summary: view.main || '',
+                // @ts-ignore
+                footerText: 'Mergulhe no seu inconsciente',
+                ctaText: 'DreamTells App',
+                // @ts-ignore
+                badgeText: t('share_badge_full_analysis')
             });
-            if (view.deepAnalysis.finalIntegration) {
-                text += `\n\n*${t('interp_share_final_integration')}* ${view.deepAnalysis.finalIntegration}`;
+
+            if (blob) {
+                const file = new File([blob], 'dream-interpretation.png', { type: 'image/png' });
+                // @ts-ignore
+                const title = t('interp_share_title');
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: title,
+                        text: 'Minha interpretação de sonho no DreamTells ✨'
+                    });
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                }
             }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsGeneratingImage(false);
         }
-        text += `\n\n---\n🌌 *E você, já descobriu o que o DreamTells diz sobre você?*`;
-        return text;
     };
 
     const handleShareNative = async () => {
@@ -996,6 +1036,32 @@ const Interpretation: React.FC = () => {
                                                 }}
                                             >
                                                 <button
+                                                    onClick={handleShareImage}
+                                                    disabled={isGeneratingImage}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 12,
+                                                        padding: '12px 16px',
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: '#F1F5F9',
+                                                        fontSize: '0.95rem',
+                                                        fontWeight: 600,
+                                                        cursor: isGeneratingImage ? 'default' : 'pointer',
+                                                        borderRadius: 12,
+                                                        textAlign: 'left',
+                                                        opacity: isGeneratingImage ? 0.6 : 1
+                                                    }}
+                                                >
+                                                    <ImageIcon size={18} color="#6366F1" />
+                                                    {/* @ts-ignore */}
+                                                    {isGeneratingImage ? t('stats_share_image_loading') : t('stats_share_image_button')}
+                                                </button>
+
+                                                <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
+
+                                                <button
                                                     onClick={handleShareNative}
                                                     style={{
                                                         display: 'flex',
@@ -1013,8 +1079,10 @@ const Interpretation: React.FC = () => {
                                                     }}
                                                 >
                                                     <Send size={18} color="#8B5CF6" />
-                                                    Enviar para...
+                                                    {/* @ts-ignore */}
+                                                    {t('stats_share_send')}
                                                 </button>
+
                                                 <button
                                                     onClick={handleCopy}
                                                     style={{
@@ -1033,7 +1101,8 @@ const Interpretation: React.FC = () => {
                                                     }}
                                                 >
                                                     <Copy size={18} color="#EC4899" />
-                                                    Copiar texto
+                                                    {/* @ts-ignore */}
+                                                    {t('stats_share_copy')}
                                                 </button>
                                                 <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
                                                 <button
@@ -1053,7 +1122,8 @@ const Interpretation: React.FC = () => {
                                                     }}
                                                 >
                                                     <X size={18} />
-                                                    Cancelar
+                                                    {/* @ts-ignore */}
+                                                    {t('common_cancel')}
                                                 </button>
                                             </motion.div>
                                         </>

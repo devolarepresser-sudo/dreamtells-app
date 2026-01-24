@@ -8,7 +8,9 @@ const DEFAULT_PROD_API_BASE_URL = 'https://dreamtells-backend.onrender.com';
 const DEFAULT_STAGING_API_BASE_URL = 'https://dreamtells-staging.onrender.com'; // Criaremos este no Render
 
 // Render pode ter cold start + chamada IA pode demorar
-const DEFAULT_TIMEOUT_MS = 60000;
+const NORMAL_TIMEOUT_MS = 60000;
+const HEAVY_TIMEOUT_MS = 120000; // 2 minutos para diagnósticos profundos
+const DEFAULT_TIMEOUT_MS = NORMAL_TIMEOUT_MS;
 
 // ✅ Deep questions: queremos 3, não 6
 const DEEP_QUESTIONS_COUNT = 3;
@@ -73,7 +75,10 @@ const normalizeDeepQuestionsTo3 = (questions: string[] | undefined, language: La
 };
 
 const generateEmotionalDiagnosisApi = async (payload: any): Promise<any> => {
-    const safeLanguage = normalizeLangForBackend(payload?.language);
+    // Normalizamos: se vier array, é a lista de sonhos. Se vier objeto, pegamos .dreams
+    const dreams = Array.isArray(payload) ? payload : (payload.dreams || []);
+    const language = normalizeLangForBackend(payload?.language);
+    const userId = payload?.userId || payload?.uid || 'dev-guest';
 
     const json = await fetchWithRetry<any>(
         EMOTIONAL_DIAG_API_URL,
@@ -81,12 +86,14 @@ const generateEmotionalDiagnosisApi = async (payload: any): Promise<any> => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                ...payload,
-                language: safeLanguage,
+                uid: userId,
+                userId,
+                dreams,
+                language,
             }),
         },
-        DEFAULT_TIMEOUT_MS,
-        1
+        HEAVY_TIMEOUT_MS,
+        2 // Aumentamos para 2 retries (total 3 tentativas)
     );
 
     // Aceita vários formatos comuns de resposta
@@ -607,13 +614,9 @@ export const aiService = {
         });
     },
 
-    generateDailyMessage: async (userId: string = 'dev-guest'): Promise<string> => {
-        try {
-            return await generateDailyMessageApi(userId);
-        } catch (error) {
-            console.error('[DAILY MESSAGE ERROR]', error);
-            return 'Hoje é um convite para você dar um pequeno passo na direção da vida que deseja.';
-        }
+    generateDailyMessage: async (userId: string = 'dev-guest'): Promise<any> => {
+        // Deixamos o erro subir para que a página possa exibir o alerta de erro corretamente
+        return await generateDailyMessageApi(userId);
     },
 
     generateEmotionalDiagnosis: async (payload: any): Promise<any> => {

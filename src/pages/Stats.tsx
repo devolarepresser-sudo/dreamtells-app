@@ -4,25 +4,27 @@ import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { aiService } from '../services/aiService';
 import {
-    Activity,
-    Brain,
-    Compass,
-    Zap,
-    Trophy,
-    Shield,
-    Star,
-    Sparkles,
-    AlertCircle,
     Share2,
     CheckCircle2,
     XCircle,
     PenLine,
-    RefreshCcw,
+    RefreshCw,
     Copy,
     Send,
-    X
+    X,
+    Sparkles,
+    Activity,
+    Shield,
+    Trophy,
+    Compass,
+    Brain,
+    Zap,
+    AlertCircle,
+    Image as ImageIcon
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { hybridStorage } from '../services/hybridStorage';
+import { generateStoryCard } from '../services/shareService';
 
 /**
  * Diagnóstico Emocional (Stats.tsx)
@@ -219,10 +221,10 @@ type DailyValidation = Record<number, YesNo | null>;
 const DIAG_LIMIT_PER_DAY = 2;
 
 const Stats: React.FC = () => {
-    const { dreams, user, t, language } = useApp();
+    const { dreams, user, t } = useApp();
 
     // -------------------- diagnóstico (controle de estado) --------------------
-    const [diagError, setDiagError] = useState<string | null>(null);
+
 
     // Heurística de estado (rápido)
     const heuristic = useMemo(() => getSubconsciousDiagnosis(Array.isArray(dreams) ? dreams : []), [dreams]);
@@ -256,6 +258,7 @@ const Stats: React.FC = () => {
     );
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [aiError, setAiError] = useState<string | null>(null);
     const [showShareMenu, setShowShareMenu] = useState(false);
 
@@ -366,19 +369,37 @@ const Stats: React.FC = () => {
         setAiError(null);
 
         try {
-            // A ideia: “forçar contexto” pro modelo analisando sonhos + texto do dia + validações
-            // Como o backend atual recebe só dreams, colocamos esses sinais dentro do array (bem leve, sem quebrar schema).
+            // 1. Coletar Mapa do Inconsciente (dados profundos)
+            const map = await hybridStorage.getUnconsciousMap();
+            const mapSummary = map ? `
+                - Identidade: ${map.axisIdentity?.status || '?'}
+                - Segurança: ${map.axisSecurity?.status || '?'}
+                - Vínculos: ${(map.axisBond?.status || []).join(', ') || '?'}
+                - Movimento: ${map.axisMovement?.status || '?'}
+                - Desejo: ${map.axisDesire?.status || '?'}
+                - Energia: ${map.axisEnergy?.status || '?'}
+            `.trim() : 'Não preenchido';
+
             // @ts-ignore
             const translatedStateTitle = t(stateTitleKey);
+            const language = user?.preferences?.language || 'pt';
+
             const signals = {
                 dreamText:
                     // @ts-ignore
                     `${t('stats_diag_signals_intro')}\n` +
+                    `CONTEXTO DO MAPA DO INCONSCIENTE:\n${mapSummary}\n\n` +
+                    `SINAIS ATUAIS:\n` +
                     `- Estado (heurístico): ${translatedStateTitle}\n` +
                     `- Emoções dominantes: ${(topEmotions || []).slice(0, 3).join(', ') || '—'}\n` +
-                    `- Como estou hoje: ${(todayText || '').trim() || '—'}\n` +
-                    `- Validações (sim/não): ${JSON.stringify(validation)}\n` +
-                    `INSTRUÇÃO: gere um diagnóstico emocional claro e uma direção prática.\n`,
+                    `- Reflexão de hoje: ${(todayText || '').trim() || '—'}\n` +
+                    `- Validações (sim/não): ${JSON.stringify(validation)}\n\n` +
+                    `INSTRUÇÃO TERAPÊUTICA PROFUNDA:\n` +
+                    `Não seja prolixo. Aja como um terapeuta provocador e profundo. \n` +
+                    `Cruze os sonhos com o Mapa do Inconsciente e a reflexão de hoje. \n` +
+                    `Identifique o "elefante na sala". No 'summary', traga uma verdade que a pessoa está evitando. \n` +
+                    `Na 'advice' (direção prática), não dê ordens; faça uma pergunta ou proponha um micro-desafio que force a pessoa a decidir por si mesma. \n` +
+                    `Mantenha o tom sóbrio, empático mas direto.\n`,
                 // @ts-ignore
                 dreamTitle: t('stats_diag_signals_title'),
                 interpretationMain: '',
@@ -388,9 +409,14 @@ const Stats: React.FC = () => {
             };
 
             const payloadDreams = [...dreamsForAI, signals];
+            const userId = user?.id || 'dev-guest';
 
             // Chama a IA já usada no app (backend atual)
-            const result = await aiService.analyzeGlobalDreams(payloadDreams);
+            const result = await aiService.generateEmotionalDiagnosis({
+                dreams: payloadDreams,
+                userId,
+                language
+            });
 
             setDiagnosisAI(result);
             localStorage.setItem(diagCacheKey, JSON.stringify(result));
@@ -402,15 +428,16 @@ const Stats: React.FC = () => {
             setShowDeepAnalysis(false);
         } catch (err: any) {
             console.error('Erro ao gerar diagnóstico IA:', err);
-            const msg = err?.message || 'Não foi possível gerar seu diagnóstico agora.';
+            // Captura a mensagem real do erro (ex: 404, 500 ou mensagem do backend)
+            const errorDetail = err?.message || String(err);
+            const msg = `${t('stats_diag_error_generic') || 'Erro na geração'}: ${errorDetail}`;
             setAiError(msg);
-            setDiagError(msg);
         } finally {
             setIsGenerating(false);
         }
     };
 
-    // Share do diagnóstico gerado
+    // Share do diagnóstico gerado (Formato Magnético para Texto)
     const getShareText = () => {
         if (!diagnosisAI) return '';
         const userName = user?.name || 'Explorador(a)';
@@ -419,7 +446,59 @@ const Stats: React.FC = () => {
         const challenge = diagnosisAI.mainChallenge || (Array.isArray(diagnosisAI.keyChallenges) ? diagnosisAI.keyChallenges[0] : '') || '';
         const guidance = diagnosisAI.advice || diagnosisAI.guidance || '';
 
-        return `✨ *DreamTells* ✨\n👤 Jornada de: ${userName}\n\n📊 *DIAGNÓSTICO EMOCIONAL*\nArquétipo: ${archetype} 🛡️\n\n🔍 *Resumo:*\n“${summary}”\n\n🧭 *Desafio Principal:*\n${challenge || '-'}\n\n💡 *Direção Prática:*\n${guidance || '-'}\n\n---\n🧠 *Como está seu mundo interno hoje?*`;
+        // @ts-ignore
+        return t('stats_share_text', {
+            userName,
+            archetype,
+            summary,
+            challenge: challenge || '-',
+            guidance: guidance || '-'
+        });
+    };
+
+    const handleShareImage = async () => {
+        if (!diagnosisAI) return;
+        setIsGeneratingImage(true);
+        setShowShareMenu(false);
+
+        try {
+            const blob = await generateStoryCard({
+                // @ts-ignore
+                title: t('stats_title'),
+                subtitle: t('stats_diag_subtype_label', { archetype: '' }).replace(': ', '').replace(':', '').trim(),
+                mainValue: diagnosisAI.archetype || 'Explorador',
+                summary: diagnosisAI.summary || diagnosisAI.description || '',
+                footerText: 'Decifre seu inconsciente',
+                ctaText: 'DreamTells App',
+                // @ts-ignore
+                badgeText: t('share_badge_full_analysis')
+            });
+
+            if (blob) {
+                const file = new File([blob], 'dreamtells-diagnosis.png', { type: 'image/png' });
+                // @ts-ignore
+                const title = t('stats_share_title');
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: title,
+                            text: 'Meu diagnóstico emocional no DreamTells ✨'
+                        });
+                    } catch (e) {
+                        // user cancelled
+                    }
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                }
+            }
+        } catch (err) {
+            console.error('Canvas error:', err);
+        } finally {
+            setIsGeneratingImage(false);
+        }
     };
 
     const handleShareNative = async () => {
@@ -844,30 +923,154 @@ const Stats: React.FC = () => {
                             </div>
 
                             <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-                                <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleShare}
-                                    style={{
-                                        flex: 1,
-                                        minWidth: 190,
-                                        padding: '12px 14px',
-                                        borderRadius: 14,
-                                        border: 'none',
-                                        background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
-                                        color: '#FFFFFF',
-                                        cursor: 'pointer',
-                                        fontWeight: 900,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 10,
-                                    }}
-                                >
-                                    <Share2 size={18} />
-                                    {/* @ts-ignore */}
-                                    {t('stats_button_share')}
-                                </motion.button>
+                                <div style={{ position: 'relative', flex: 1, minWidth: 190 }}>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setShowShareMenu(!showShareMenu)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 14px',
+                                            borderRadius: 14,
+                                            border: 'none',
+                                            background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                                            color: '#FFFFFF',
+                                            cursor: 'pointer',
+                                            fontWeight: 900,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 10,
+                                        }}
+                                    >
+                                        <Share2 size={18} />
+                                        {/* @ts-ignore */}
+                                        {t('stats_button_share')}
+                                    </motion.button>
+
+                                    <AnimatePresence>
+                                        {showShareMenu && (
+                                            <>
+                                                <div
+                                                    onClick={() => setShowShareMenu(false)}
+                                                    style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: '100%',
+                                                        left: 0,
+                                                        right: 0,
+                                                        marginBottom: 12,
+                                                        background: '#1E293B',
+                                                        borderRadius: 20,
+                                                        padding: 8,
+                                                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        zIndex: 100,
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        gap: 4
+                                                    }}
+                                                >
+                                                    <button
+                                                        onClick={handleShareImage}
+                                                        disabled={isGeneratingImage}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 12,
+                                                            padding: '12px 16px',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#F1F5F9',
+                                                            fontSize: '0.95rem',
+                                                            fontWeight: 600,
+                                                            cursor: isGeneratingImage ? 'default' : 'pointer',
+                                                            borderRadius: 12,
+                                                            textAlign: 'left',
+                                                            opacity: isGeneratingImage ? 0.6 : 1
+                                                        }}
+                                                    >
+                                                        <ImageIcon size={18} color="#6366F1" />
+                                                        {/* @ts-ignore */}
+                                                        {isGeneratingImage ? t('stats_share_image_loading') : t('stats_share_image_button')}
+                                                    </button>
+
+                                                    <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
+
+                                                    <button
+                                                        onClick={handleShareNative}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 12,
+                                                            padding: '12px 16px',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#F1F5F9',
+                                                            fontSize: '0.95rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            borderRadius: 12,
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <Send size={18} color="#8B5CF6" />
+                                                        {/* @ts-ignore */}
+                                                        {t('stats_share_send')}
+                                                    </button>
+
+                                                    <button
+                                                        onClick={handleCopy}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 12,
+                                                            padding: '12px 16px',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#F1F5F9',
+                                                            fontSize: '0.95rem',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            borderRadius: 12,
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <Copy size={18} color="#EC4899" />
+                                                        {/* @ts-ignore */}
+                                                        {t('stats_share_copy')}
+                                                    </button>
+                                                    <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '4px 8px' }} />
+                                                    <button
+                                                        onClick={() => setShowShareMenu(false)}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 12,
+                                                            padding: '12px 16px',
+                                                            background: 'transparent',
+                                                            border: 'none',
+                                                            color: '#94A3B8',
+                                                            fontSize: '0.9rem',
+                                                            cursor: 'pointer',
+                                                            borderRadius: 12,
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <X size={18} />
+                                                        {/* @ts-ignore */}
+                                                        {t('common_cancel')}
+                                                    </button>
+                                                </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
 
                                 <button
                                     onClick={() => setShowDeepAnalysis(true)}
@@ -887,7 +1090,7 @@ const Stats: React.FC = () => {
                                         gap: 10,
                                     }}
                                 >
-                                    <RefreshCcw size={18} />
+                                    <RefreshCw size={18} />
                                     {/* @ts-ignore */}
                                     {t('stats_button_update')}
                                 </button>
@@ -904,7 +1107,9 @@ const Stats: React.FC = () => {
                                 {t('stats_card_diagnosis_desc')}
                             </p>
 
-                            <button
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => setShowDeepAnalysis(true)}
                                 style={{
                                     width: '100%',
@@ -926,7 +1131,7 @@ const Stats: React.FC = () => {
                                 <Sparkles size={18} />
                                 {/* @ts-ignore */}
                                 {t('stats_button_generate')}
-                            </button>
+                            </motion.button>
 
                             {aiError && (
                                 <p style={{ marginTop: 10, color: '#FCA5A5', fontSize: '0.9rem', fontWeight: 800 }}>
@@ -1037,13 +1242,14 @@ const Stats: React.FC = () => {
                                         marginBottom: 20
                                     }}
                                 >
-                                    <RefreshCcw size={48} color="#6366F1" />
+                                    <RefreshCw size={48} color="#6366F1" />
                                 </motion.div>
                                 <h3 style={{ color: '#F8FAFC', fontSize: '1.2rem', fontWeight: 800 }}>
-                                    Analisando contexto...
+                                    {/* @ts-ignore */}
+                                    Analisando profundamente...
                                 </h3>
                                 <p style={{ color: '#94A3B8', marginTop: 8 }}>
-                                    Isso pode levar alguns segundos.
+                                    Estamos conectando seus sonhos ao seu Mapa do Inconsciente. Isso pode levar até 1-2 minutos em algumas conexões. Não feche o app.
                                 </p>
                             </div>
                         )}

@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { aiService } from '../services/aiService';
-import { motion } from 'framer-motion';
-import { Sun, Loader, Share2 } from 'lucide-react';
+import { Sun, Loader, Share2, Copy, Send, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const DailyMessage: React.FC = () => {
-    const { dreams, language, t, dailyMessage, setDailyMessage, user } = useApp();
+    const { dreams, t, dailyMessage, setDailyMessage, user } = useApp();
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showShareMenu, setShowShareMenu] = useState(false);
 
-    // Mantemos esse formato de data porque é o que você já usa no estado:
-    const today = new Date().toDateString();
+    // Unificamos o formato de data para YYYY-MM-DD (compatível com AppContext)
+    const today = new Date().toISOString().split('T')[0];
     const hasMessageToday = dailyMessage?.date === today;
 
     const handleGenerate = async () => {
@@ -32,24 +32,23 @@ const DailyMessage: React.FC = () => {
 
         try {
             const userId = user?.id || 'dev-guest';
-            const response: any = await aiService.generateDailyMessage(userId); // <- Isso agora retorna o objeto data
+            const response: any = await aiService.generateDailyMessage(userId);
 
-            const oracle = response.data || { reflection: response.message };
+            // A resposta pode vir dentro de .data ou plana. 
+            // Tentamos pegar reflection/message/text para o campo principal.
+            const oracle = response.data || response;
 
-            // AQUI estava o erro: você fazia setDailyMessage(msg)
-            // e depois esperava dailyMessage.date / dailyMessage.message.
-            // Agora salvamos no formato que a tela realmente usa:
             setDailyMessage({
                 date: today,
-                message: oracle.reflection || response.message,
-                title: oracle.title,
-                practice: oracle.practice,
-                archetype: oracle.archetype
+                message: oracle.reflection || oracle.message || oracle.text || response.message || '',
+                title: oracle.title || '',
+                practice: oracle.practice || '',
+                archetype: oracle.archetype || ''
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('[DailyMessage] Erro ao gerar mensagem:', error);
             setError(
-                t('error_generic') || t('daily_msg_error_generating')
+                error?.message || t('daily_msg_error_generating') || 'Não foi possível gerar sua mensagem.'
             );
         } finally {
             setIsLoading(false);
