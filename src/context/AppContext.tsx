@@ -19,6 +19,8 @@ import { FREE_DEV_MODE } from '../config/featureFlags';
 import { hybridStorage } from '../services/hybridStorage';
 
 import i18n from '../i18n'; // Importação do i18n configurado
+import { notificationService } from '../services/notificationService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const locales = { pt, es, en, fr, it, de };
 
@@ -98,6 +100,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 // Carrega sonhos GUEST inicialmente
                 const guestDreams = await hybridStorage.getDreamsForUser('guest');
                 setDreams(guestDreams);
+
+                // Notificação de Inatividade (2 dias)
+                const isGranted = await notificationService.requestPermissions();
+                if (isGranted) {
+                    const title = t('retention_notification_title');
+                    const body = t('retention_notification_body');
+                    await notificationService.scheduleInactivityNotification(title, body);
+                }
             } catch (error) {
                 console.error('[AppContext] Initialization error:', error);
             } finally {
@@ -300,7 +310,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const setDailyMessage = async (msg: string | DailyMessageData) => {
         const data: DailyMessageData = typeof msg === 'string'
             ? {
-                date: new Date().toISOString().split('T')[0],
+                date: getLocalDateString(),
                 message: msg,
             }
             : msg;

@@ -25,6 +25,7 @@ const RecordDream: React.FC = () => {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const chunksRef = useRef<BlobPart[]>([]);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Mantendo SpeechRecognition (Web)
     const recognitionRef = useRef<any>(null);
@@ -166,6 +167,14 @@ const RecordDream: React.FC = () => {
 
         recognitionRef.current = recognition;
     }, [language]);
+
+    // ✅ Ajusta altura do textarea automaticamente
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [transcript]);
 
     // Lógica de Gravação
     const startRecording = async () => {
@@ -419,6 +428,7 @@ const RecordDream: React.FC = () => {
                                 ? t('record_placeholder_recording')
                                 : t('record_placeholder_waiting')
                         }
+                        ref={textareaRef}
                         style={{
                             width: '100%',
                             minHeight: 200,
@@ -432,6 +442,7 @@ const RecordDream: React.FC = () => {
                             resize: 'none',
                             outline: 'none',
                             boxShadow: 'inset 0 2px 8px rgba(15,23,42,0.85)',
+                            overflow: 'hidden',
                         }}
                     />
 

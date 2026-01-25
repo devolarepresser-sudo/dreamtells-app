@@ -15,6 +15,7 @@ import {
     LogOut,
     Sun,
     Compass,
+    GraduationCap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -54,6 +55,9 @@ const Menu = () => {
         { icon: Book, label: t("menu_symbols"), path: "/symbols", tileClass: "menuIconTile-symbols", isPremiumTile: true },
         { icon: Compass, label: t("map_title"), path: "/unconscious-map", tileClass: "menuIconTile-map", isPremiumTile: true },
 
+        // Dictionary
+        { icon: GraduationCap, label: t("menu_dictionary") || "Dicionário da Alma", path: "/dictionary", tileClass: "menuIconTile-dictionary" },
+
         // Premium page (always visible)
         { icon: Crown, label: t("menu_premium"), path: "/premium", tileClass: "menuIconTile-premium", isPremiumTile: true },
 
@@ -75,11 +79,11 @@ const Menu = () => {
             showBack={true}
             showMenu={false}
             icon={<Sparkles size={18} color="#F9FAFB" />}
-            className="no-global-bg"
         >
             {/* CSS local pra garantir contraste e cores sem depender do resto */}
             <style>
-                {`
+                {
+                    `
           .menuIconTile{
             width: 44px;
             height: 44px;
@@ -154,15 +158,19 @@ const Menu = () => {
           .menuIconTile-about{
             background: linear-gradient(135deg, #0EA5E9, #7DD3FC);
           }
+          
+          .menuIconTile-dictionary{
+            background: linear-gradient(135deg, #4338CA, #6366F1);
+            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3);
+          }
         `}
-            </style>
+            </style >
 
             <div
                 style={{
                     width: "100%",
                     maxWidth: 480,
                     margin: "0 auto",
-                    marginTop: 8,
                     background: "transparent",
                 }}
             >
@@ -172,7 +180,6 @@ const Menu = () => {
                         width: "100%",
                         maxWidth: 480,
                         margin: "0 auto",
-                        marginTop: 8,
                     }}
                 >
                     <div style={{ display: "grid", gap: "12px" }}>
@@ -250,7 +257,7 @@ const Menu = () => {
                     )}
                 </div>
             </div>
-        </Layout>
+        </Layout >
     );
 };
 

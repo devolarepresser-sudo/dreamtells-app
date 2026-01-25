@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
@@ -25,6 +25,7 @@ import {
 import { AnimatePresence } from 'framer-motion';
 import { hybridStorage } from '../services/hybridStorage';
 import { generateStoryCard } from '../services/shareService';
+import { getLocalDateString } from '../utils/dateUtils';
 
 /**
  * Diagnóstico Emocional (Stats.tsx)
@@ -42,7 +43,7 @@ const normalizeText = (str: string) =>
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
 
-const getTodayKey = () => new Date().toISOString().slice(0, 10);
+const getTodayKey = () => getLocalDateString();
 
 const safeJsonParse = <T,>(raw: string | null, fallback: T): T => {
     if (!raw) return fallback;
@@ -233,29 +234,26 @@ const Stats: React.FC = () => {
     const practical = useMemo(() => getPracticalMeaning(stateKey), [stateKey]);
 
     // Chaves diárias
-    const todayKey = useMemo(() => getTodayKey(), []);
+    // Chaves diárias (Removendo o [] do useMemo para garantir que se o dia mudar em background, a chave atualize)
+    const todayKey = getTodayKey();
     const diagCountKey = `dreamtells_emodiag_count_${todayKey}`;
     const diagCacheKey = `dreamtells_emodiag_cache_${todayKey}`;
     const validationKey = `dreamtells_emodiag_validation_${todayKey}`;
     const microKey = `dreamtells_emodiag_micro_${todayKey}`;
 
     // Limite de diagnósticos/dia
-    const [diagCount, setDiagCount] = useState<number>(() => Number(localStorage.getItem(diagCountKey) || 0));
+    const [diagCount, setDiagCount] = useState<number>(0);
     const canGenerate = diagCount < DIAG_LIMIT_PER_DAY;
 
     // Texto do dia (entrada do usuário)
-    const [todayText, setTodayText] = useState<string>(() => safeJsonParse<string>(localStorage.getItem(microKey), ''));
-    const [todaySaved, setTodaySaved] = useState<boolean>(() => !!localStorage.getItem(microKey));
+    const [todayText, setTodayText] = useState<string>('');
+    const [todaySaved, setTodaySaved] = useState<boolean>(false);
 
     // Validações
-    const [validation, setValidation] = useState<DailyValidation>(() =>
-        safeJsonParse<DailyValidation>(localStorage.getItem(validationKey), {})
-    );
+    const [validation, setValidation] = useState<DailyValidation>({});
 
     // Diagnóstico IA (cache diário)
-    const [diagnosisAI, setDiagnosisAI] = useState<any>(() =>
-        safeJsonParse<any>(localStorage.getItem(diagCacheKey), null)
-    );
+    const [diagnosisAI, setDiagnosisAI] = useState<any>(null);
 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -267,15 +265,42 @@ const Stats: React.FC = () => {
 
     const actionRef = useRef<HTMLDivElement | null>(null);
 
-    // Coerência (validação sim/não)
-    const coherence = useMemo(() => {
-        const values = Object.values(validation).filter((v) => v === 'yes' || v === 'no') as YesNo[];
-        const yesCount = values.filter((v) => v === 'yes').length;
-        const noCount = values.filter((v) => v === 'no').length;
-        const total = yesCount + noCount;
-        if (!total) return null;
-        return Math.round((yesCount / total) * 100);
-    }, [validation]);
+    // Carregar dados iniciais (async)
+    useEffect(() => {
+        const load = async () => {
+            const count = await hybridStorage.getItem(diagCountKey);
+            const micro = await hybridStorage.getItem(microKey);
+            const validations = await hybridStorage.getItem(validationKey);
+            const cache = await hybridStorage.getItem(diagCacheKey);
+
+            if (count) {
+                const num = Number(count);
+                setDiagCount(isNaN(num) ? 0 : num);
+            }
+            if (micro) {
+                const parsed = safeJsonParse(micro, '');
+                setTodayText(parsed);
+                setTodaySaved(!!parsed);
+            }
+            if (validations) setValidation(safeJsonParse(validations, {}));
+            if (cache) setDiagnosisAI(safeJsonParse(cache, null));
+        };
+        load();
+    }, [diagCountKey, microKey, validationKey, diagCacheKey]);
+
+    // Debugging (apenas dev)
+    useEffect(() => {
+        // @ts-ignore
+        if (import.meta.env?.DEV) {
+            console.log('[DEBUG DIAG] State:', {
+                todayKey,
+                diagCount,
+                canGenerate,
+                hasDreams: dreams.length,
+                hasDiagnosis: !!diagnosisAI
+            });
+        }
+    }, [todayKey, diagCount, canGenerate, dreams.length, diagnosisAI]);
 
     // Texto curto “diagnóstico do dia” (heurística)
     const heuristicSummary = useMemo(() => {
@@ -296,31 +321,29 @@ const Stats: React.FC = () => {
     }, [dreams, stateTitleKey, topEmotions, t]);
 
     // Salvar texto do dia (sem IA)
-    const handleSaveTodayText = () => {
+    const handleSaveTodayText = async () => {
         const txt = (todayText || '').trim();
         if (!txt) {
             // @ts-ignore
             alert(t('stats_write_error'));
             return;
         }
-        localStorage.setItem(microKey, JSON.stringify(txt));
+        await hybridStorage.setItem(microKey, JSON.stringify(txt));
         setTodaySaved(true);
     };
 
     // Limpar texto do dia
-    const handleClearTodayText = () => {
+    const handleClearTodayText = async () => {
         setTodayText('');
         setTodaySaved(false);
-        localStorage.removeItem(microKey);
+        await hybridStorage.removeItem(microKey);
     };
 
     // Marcar validações
-    const setClaim = (idx: number, value: YesNo) => {
-        setValidation((prev) => {
-            const next: DailyValidation = { ...prev, [idx]: prev[idx] === value ? null : value };
-            localStorage.setItem(validationKey, JSON.stringify(next));
-            return next;
-        });
+    const setClaim = async (idx: number, value: YesNo) => {
+        const next: DailyValidation = { ...validation, [idx]: validation[idx] === value ? null : value };
+        setValidation(next);
+        await hybridStorage.setItem(validationKey, JSON.stringify(next));
     };
 
     // Monta “sonhos recentes” (robusto: tenta pegar texto/interpretação/insights se existirem)
@@ -419,17 +442,23 @@ const Stats: React.FC = () => {
             });
 
             setDiagnosisAI(result);
-            localStorage.setItem(diagCacheKey, JSON.stringify(result));
+            await hybridStorage.setItem(diagCacheKey, JSON.stringify(result));
 
             const nextCount = diagCount + 1;
             setDiagCount(nextCount);
-            localStorage.setItem(diagCountKey, String(nextCount));
+            await hybridStorage.setItem(diagCountKey, String(nextCount));
+
+            // @ts-ignore
+            if (import.meta.env?.DEV) {
+                console.log('[DEBUG DIAG] Success:', result);
+            }
 
             setShowDeepAnalysis(false);
         } catch (err: any) {
-            console.error('Erro ao gerar diagnóstico IA:', err);
             // Captura a mensagem real do erro (ex: 404, 500 ou mensagem do backend)
             const errorDetail = err?.message || String(err);
+            console.error('[DEBUG DIAG] Error Detail:', errorDetail);
+
             const msg = `${t('stats_diag_error_generic') || 'Erro na geração'}: ${errorDetail}`;
             setAiError(msg);
         } finally {
@@ -1134,10 +1163,17 @@ const Stats: React.FC = () => {
                             </motion.button>
 
                             {aiError && (
-                                <p style={{ marginTop: 10, color: '#FCA5A5', fontSize: '0.9rem', fontWeight: 800 }}>
-                                    {/* @ts-ignore */}
-                                    {t('stats_diag_error_generic')}
-                                </p>
+                                <div style={{
+                                    marginTop: 16,
+                                    padding: 12,
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    borderRadius: 12
+                                }}>
+                                    <p style={{ color: '#FCA5A5', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>
+                                        {aiError}
+                                    </p>
+                                </div>
                             )}
                         </>
                     )}
@@ -1217,7 +1253,10 @@ const Stats: React.FC = () => {
                                         {t('stats_button_generate')}
                                     </button>
                                     <button
-                                        onClick={() => setShowDeepAnalysis(false)}
+                                        onClick={() => {
+                                            setShowDeepAnalysis(false);
+                                            setAiError(null);
+                                        }}
                                         style={{
                                             background: 'transparent',
                                             color: '#94A3B8',
@@ -1231,6 +1270,25 @@ const Stats: React.FC = () => {
                                         {t('common_cancel')}
                                     </button>
                                 </div>
+
+                                {aiError && (
+                                    <div style={{
+                                        marginTop: 20,
+                                        padding: 12,
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: 12,
+                                        textAlign: 'left'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                                            <AlertCircle size={14} color="#FCA5A5" />
+                                            <span style={{ color: '#F8FAFC', fontSize: '0.85rem', fontWeight: 800 }}>Falha na Análise</span>
+                                        </div>
+                                        <p style={{ color: '#FCA5A5', fontSize: '0.8rem', lineHeight: 1.4, margin: 0 }}>
+                                            {aiError}
+                                        </p>
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <div style={{ padding: '40px 0' }}>

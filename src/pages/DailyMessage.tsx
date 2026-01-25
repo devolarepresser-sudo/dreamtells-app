@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { aiService } from '../services/aiService';
 import { Sun, Loader, Share2, Copy, Send, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const DailyMessage: React.FC = () => {
     const { dreams, t, dailyMessage, setDailyMessage, user } = useApp();
@@ -13,7 +14,7 @@ const DailyMessage: React.FC = () => {
     const [showShareMenu, setShowShareMenu] = useState(false);
 
     // Unificamos o formato de data para YYYY-MM-DD (compatível com AppContext)
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const hasMessageToday = dailyMessage?.date === today;
 
     const handleGenerate = async () => {

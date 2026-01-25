@@ -3,13 +3,14 @@ import { FREE_DEV_MODE } from '../config/featureFlags';
 import { hybridStorage } from './hybridStorage';
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
+import { getLocalDateString } from '../utils/dateUtils';
 
 const DEFAULT_PROD_API_BASE_URL = 'https://dreamtells-backend.onrender.com';
 const DEFAULT_STAGING_API_BASE_URL = 'https://dreamtells-staging.onrender.com'; // Criaremos este no Render
 
 // Render pode ter cold start + chamada IA pode demorar
 const NORMAL_TIMEOUT_MS = 60000;
-const HEAVY_TIMEOUT_MS = 120000; // 2 minutos para diagnósticos profundos
+const HEAVY_TIMEOUT_MS = 180000; // 3 minutos para diagnósticos profundos / Render cold start
 const DEFAULT_TIMEOUT_MS = NORMAL_TIMEOUT_MS;
 
 // ✅ Deep questions: queremos 3, não 6
@@ -80,6 +81,11 @@ const generateEmotionalDiagnosisApi = async (payload: any): Promise<any> => {
     const language = normalizeLangForBackend(payload?.language);
     const userId = payload?.userId || payload?.uid || 'dev-guest';
 
+    // @ts-ignore
+    if (import.meta.env?.DEV) {
+        console.log('[AI SERVICE] Payload Emotional Diagnosis:', { userId, language, dreamsCount: dreams.length });
+    }
+
     const json = await fetchWithRetry<any>(
         EMOTIONAL_DIAG_API_URL,
         {
@@ -98,7 +104,13 @@ const generateEmotionalDiagnosisApi = async (payload: any): Promise<any> => {
 
     // Aceita vários formatos comuns de resposta
     if (json?.success === false) {
+        console.error('[AI SERVICE] Backend reported failure in Emotional Diagnosis:', json?.error);
         throw new Error(json?.error || 'Falha ao gerar diagnóstico.');
+    }
+
+    if (!json || (typeof json === 'object' && Object.keys(json).length === 0)) {
+        console.error('[AI SERVICE] Received empty response for Emotional Diagnosis');
+        throw new Error('O servidor retornou uma resposta vazia.');
     }
 
     return json?.data ?? json?.analysis ?? json;
@@ -479,7 +491,7 @@ const generateDeepQuestionsApi = async (dreamText: string, language: string): Pr
 const DAILY_LIMIT = 3;
 
 const getDailyUsageKey = (userId: string) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     return `dream_limit_${userId}_${today}`;
 };
 
