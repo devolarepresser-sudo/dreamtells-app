@@ -627,8 +627,36 @@ export const aiService = {
     },
 
     generateDailyMessage: async (userId: string = 'dev-guest'): Promise<any> => {
-        // Deixamos o erro subir para que a página possa exibir o alerta de erro corretamente
-        return await generateDailyMessageApi(userId);
+        try {
+            // Coletar contexto para personalização
+            const dreams = await hybridStorage.getDreamsForUser(userId);
+            const unconsciousMap = await hybridStorage.getUnconsciousMap();
+            const language = await hybridStorage.getLanguage() || 'pt';
+
+            const payload = {
+                userId,
+                language,
+                dreams: dreams.slice(0, 3), // Pegamos os 3 últimos para contexto
+                unconsciousMap
+            };
+
+            const json = await fetchWithRetry<any>(
+                DAILY_MESSAGE_API_URL,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                },
+                DEFAULT_TIMEOUT_MS,
+                1
+            );
+
+            return json;
+        } catch (error) {
+            console.error('[AI SERVICE] Error in generateDailyMessage context injection:', error);
+            // Fallback para a chamada simples se falhar a coleta de contexto
+            return await generateDailyMessageApi(userId);
+        }
     },
 
     generateEmotionalDiagnosis: async (payload: any): Promise<any> => {

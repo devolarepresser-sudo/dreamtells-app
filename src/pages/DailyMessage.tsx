@@ -190,6 +190,17 @@ const DailyMessage: React.FC = () => {
                             {dailyMessage.title || t('daily_msg_default_title')}
                         </h3>
 
+                        {/* Indicador de Personalização */}
+                        <div style={{
+                            fontSize: '0.7rem',
+                            color: '#60A5FA',
+                            marginBottom: 16,
+                            fontStyle: 'italic',
+                            opacity: 0.8
+                        }}>
+                            ✨ Inspirado em seus sonhos e momento atual
+                        </div>
+
                         <div style={{
                             width: 40,
                             height: 2,
