@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "assets": "capacitor-assets generate",
+    "sync": "npx cap sync ios"
   },
   "dependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",
