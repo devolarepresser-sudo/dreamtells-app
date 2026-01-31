@@ -88,45 +88,29 @@ const RecordDream: React.FC = () => {
             (async () => {
                 try { await SpeechRecognition.removeAllListeners(); } catch { }
 
-                // ✅ Preview (tempo real)
+                // ✅ Listener Único e Robusto (NATIVO)
                 SpeechRecognition.addListener("partialResults", (data) => {
                     if (!acceptingRef.current) return;
 
                     const text = data.matches?.[0] ?? "";
                     if (!text) return;
 
-                    // NÃO sobrescreve o finalAccum: só preview
+                    // No modo nativo, o plugin costuma mandar o bloco "atual" da sessão.
+                    // Para evitar duplicar o que veio de sessões anteriores (auto-restart),
+                    // usamos o partialRef para o preview e mostramos a soma.
                     partialRef.current = text;
                     updateTextareaFromBuffers();
                 });
 
-                // ✅ Resultado final (mais estável que partial)
-                SpeechRecognition.addListener("partialResults", (data) => {
-                    if (!acceptingRef.current) return;
-
-                    const text = data.matches?.[0] ?? "";
-                    if (!text) return;
-
-                    const fa = normalize(finalAccumRef.current);
-
-                    // Regra robusta:
-                    // - se o texto novo já contém o acumulado, ele provavelmente é mais completo -> substitui finalAccum
-                    // - senão, concatena
-                    if (!fa) {
-                        finalAccumRef.current = text;
-                    } else if (text.includes(fa)) {
-                        finalAccumRef.current = text;
-                    } else if (!fa.endsWith(text)) {
-                        finalAccumRef.current = normalize(`${fa} ${text}`);
-                    }
-
-                    partialRef.current = '';
-                    updateTextareaFromBuffers();
-                });
                 // ✅ Auto-restart quando para por silêncio (NATIVO)
                 SpeechRecognition.addListener("listeningState", (data) => {
                     if (data.status === "stopped" && shouldRecordRef.current) {
-                        console.log('[RecordDream] Native silence detected, restarting...');
+                        console.log('[RecordDream] Native silence detected, saving session and restarting...');
+
+                        // Antes de reiniciar, o que era partial vira definitivo
+                        finalAccumRef.current = normalize(`${finalAccumRef.current} ${partialRef.current}`);
+                        partialRef.current = '';
+
                         SpeechRecognition.start({
                             language: getSpeechLocale(language),
                             maxResults: 5,
@@ -155,14 +139,23 @@ const RecordDream: React.FC = () => {
         recognition.interimResults = true;
 
         recognition.onresult = (event: any) => {
-            let finalTranscript = '';
-            for (let i = 0; i < event.results.length; i++) {
+            let currentSessionFinal = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
                 const r = event.results[i];
-                if (r.isFinal) finalTranscript += r[0].transcript + ' ';
+                if (r.isFinal) {
+                    currentSessionFinal += r[0].transcript + ' ';
+                } else {
+                    // Preview em tempo real para Web
+                    partialRef.current = r[0].transcript;
+                }
             }
-            if (finalTranscript) {
-                setTranscript((prev) => normalize(`${prev} ${finalTranscript}`));
+
+            if (currentSessionFinal) {
+                finalAccumRef.current = normalize(`${finalAccumRef.current} ${currentSessionFinal}`);
+                partialRef.current = '';
             }
+
+            updateTextareaFromBuffers();
         };
 
         recognition.onerror = (event: any) => {
@@ -175,6 +168,10 @@ const RecordDream: React.FC = () => {
 
         recognition.onend = () => {
             if (shouldRecordRef.current) {
+                // Ao fechar por silêncio/timeout, transfere o que sobrou no partial para o definitivo
+                finalAccumRef.current = normalize(`${finalAccumRef.current} ${partialRef.current}`);
+                partialRef.current = '';
+
                 try {
                     recognition.start();
                 } catch (e) {
