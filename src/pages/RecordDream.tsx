@@ -18,7 +18,7 @@ declare global {
     }
 }
 
-const STOP_TIMEOUT_MS = 1200;
+const STOP_TIMEOUT_MS = 10000;
 
 const RecordDream: React.FC = () => {
     // Refs para persistência (não quebra no re-render)
@@ -43,6 +43,7 @@ const RecordDream: React.FC = () => {
     const finalAccumRef = useRef('');     // texto “confirmado” acumulado
     const partialRef = useRef('');        // preview do que está falando agora
     const acceptingRef = useRef(false);   // bloqueia eventos atrasados após stop
+    const shouldRecordRef = useRef(false); // Mantém a intenção de gravação (para auto-restart)
 
     // Anti duplo click/tap
     const lastTapRef = useRef(0);
@@ -122,6 +123,18 @@ const RecordDream: React.FC = () => {
                     partialRef.current = '';
                     updateTextareaFromBuffers();
                 });
+                // ✅ Auto-restart quando para por silêncio (NATIVO)
+                SpeechRecognition.addListener("listeningState", (data) => {
+                    if (data.status === "stopped" && shouldRecordRef.current) {
+                        console.log('[RecordDream] Native silence detected, restarting...');
+                        SpeechRecognition.start({
+                            language: getSpeechLocale(language),
+                            maxResults: 5,
+                            partialResults: true,
+                            popup: false,
+                        }).catch(e => console.warn('[RecordDream] Auto-restart error:', e));
+                    }
+                });
             })();
 
             return () => {
@@ -161,8 +174,16 @@ const RecordDream: React.FC = () => {
         };
 
         recognition.onend = () => {
-            setIsRecording(false);
-            setIsLoadingRecording(false);
+            if (shouldRecordRef.current) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.warn('SpeechRecognition auto-restart failed:', e);
+                }
+            } else {
+                setIsRecording(false);
+                setIsLoadingRecording(false);
+            }
         };
 
         recognitionRef.current = recognition;
@@ -185,6 +206,7 @@ const RecordDream: React.FC = () => {
             finalAccumRef.current = '';
             partialRef.current = '';
             acceptingRef.current = true;
+            shouldRecordRef.current = true;
             setTranscript('');
 
             // ✅ 1) Áudio (MediaRecorder) - SOMENTE WEB
@@ -255,6 +277,7 @@ const RecordDream: React.FC = () => {
 
         // ✅ trava updates atrasados e “congela” o texto completo
         acceptingRef.current = false;
+        shouldRecordRef.current = false;
         const frozen = normalize(`${finalAccumRef.current} ${partialRef.current}`) || normalize(transcript);
         setTranscript(frozen);
 
