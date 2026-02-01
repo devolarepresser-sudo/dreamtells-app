@@ -92,28 +92,41 @@ export const generateStoryCard = async (data: {
             ctx.fillText(data.subtitle.toUpperCase(), 540, cardY + 60);
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 70px sans-serif';
-            // O mainValue (Título da Interpretação) fica centralizado no card
-            ctx.fillText(data.mainValue, 540, cardY + 135);
+            ctx.font = 'bold 45px sans-serif'; // Diminuído de 70px para 45px
+
+            // Trunca o mainValue (texto do sonho) se ele for muito longo para uma única linha
+            let displayValue = data.mainValue;
+            if (ctx.measureText(displayValue).width > 880) {
+                while (ctx.measureText(displayValue + '...').width > 880 && displayValue.length > 0) {
+                    displayValue = displayValue.substring(0, displayValue.length - 1);
+                }
+                displayValue += '...';
+            }
+            ctx.fillText(displayValue, 540, cardY + 125);
 
             // 5. Bloco de Conteúdo (Summary) - Começa mais cedo
             ctx.fillStyle = '#E2E8F0';
-            ctx.font = 'italic 46px sans-serif';
+            ctx.font = 'italic 40px sans-serif'; // Diminuído de 46px para 40px
             const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
                 const words = text.split(' ');
                 let line = '';
                 let currentY = y;
+                let lineCount = 0;
+                const maxLines = 10; // Limite rigoroso de linhas
+
                 for (let n = 0; n < words.length; n++) {
                     const testLine = line + words[n] + ' ';
-                    // Se for ultrapassar o limite inferior do card (badge), para de escrever.
-                    if (currentY > 1450) {
-                        ctx.fillText(line + '...', x, currentY);
-                        return;
-                    }
+
                     if (ctx.measureText(testLine).width > maxWidth && n > 0) {
                         ctx.fillText(line, x, currentY);
                         line = words[n] + ' ';
                         currentY += lineHeight;
+                        lineCount++;
+
+                        if (lineCount >= maxLines) {
+                            ctx.fillText('...', x, currentY);
+                            return;
+                        }
                     } else {
                         line = testLine;
                     }
@@ -121,7 +134,7 @@ export const generateStoryCard = async (data: {
                 ctx.fillText(line, x, currentY);
             };
 
-            wrapText(`“${data.summary}”`, 540, 620, 840, 70);
+            wrapText(`“${data.summary}”`, 540, 620, 840, 60); // Line-height diminuído de 70 para 60
 
             // 5b. Badge de "Escassez" (Curiosidade)
             if (data.badgeText) {
