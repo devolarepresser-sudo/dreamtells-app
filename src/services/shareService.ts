@@ -12,6 +12,7 @@ export const generateStoryCard = async (data: {
     footerText: string;
     ctaText: string;
     badgeText?: string;
+    theme?: 'night' | 'sun';
 }): Promise<Blob | null> => {
     return new Promise((resolve) => {
         try {
@@ -28,8 +29,13 @@ export const generateStoryCard = async (data: {
 
             // 1. Fundo Deep Social
             const grd = ctx.createLinearGradient(0, 0, 0, 1920);
-            grd.addColorStop(0, '#0F172A');
-            grd.addColorStop(1, '#020617');
+            if (data.theme === 'sun') {
+                grd.addColorStop(0, '#1E1B4B'); // Azul marinho profundo no topo
+                grd.addColorStop(1, '#431407'); // Marrom avermelhado/laranja escuro na base
+            } else {
+                grd.addColorStop(0, '#0F172A');
+                grd.addColorStop(1, '#020617');
+            }
             ctx.fillStyle = grd;
             ctx.fillRect(0, 0, 1080, 1920);
 
@@ -44,8 +50,13 @@ export const generateStoryCard = async (data: {
                 ctx.fill();
             };
 
-            drawGlow(540, 400, 800, 'rgba(99, 102, 241, 0.15)');
-            drawGlow(100, 1600, 600, 'rgba(236, 72, 153, 0.1)');
+            if (data.theme === 'sun') {
+                drawGlow(540, 400, 900, 'rgba(246, 224, 94, 0.2)'); // Glow Amarelo topo
+                drawGlow(900, 1600, 800, 'rgba(234, 88, 12, 0.15)'); // Glow Laranja base
+            } else {
+                drawGlow(540, 400, 800, 'rgba(99, 102, 241, 0.15)');
+                drawGlow(100, 1600, 600, 'rgba(236, 72, 153, 0.1)');
+            }
 
             // 3. Header Branding
             ctx.textAlign = 'center';
@@ -59,8 +70,8 @@ export const generateStoryCard = async (data: {
             ctx.fillText(data.title.toUpperCase(), 540, 260);
             ctx.letterSpacing = '0px';
 
-            // 4. Card Central (Main Value)
-            const cardY = 450;
+            // 4. Card Central (Destaque do Título)
+            const cardY = 320; // Subir o card para aproveitar o espaço superior
             ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
             ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
             ctx.lineWidth = 2;
@@ -69,24 +80,23 @@ export const generateStoryCard = async (data: {
             if (ctx.roundRect) {
                 ctx.beginPath();
                 // @ts-ignore
-                ctx.roundRect(100, cardY, 880, 280, 40);
+                ctx.roundRect(100, cardY, 880, 180, 40); // Card mais baixo já que não tem o texto do sonho
                 ctx.fill();
                 ctx.stroke();
             } else {
-                ctx.fillRect(100, cardY, 880, 280);
+                ctx.fillRect(100, cardY, 880, 180);
             }
 
-            ctx.fillStyle = '#818CF8';
+            ctx.fillStyle = data.theme === 'sun' ? '#F6AD55' : '#818CF8';
             ctx.font = '800 32px sans-serif';
-            ctx.fillText(data.subtitle.toUpperCase(), 540, cardY + 80);
+            ctx.fillText(data.subtitle.toUpperCase(), 540, cardY + 60);
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 80px sans-serif';
-            // Ajuste de fonte se o texto for muito longo
-            if (data.mainValue.length > 20) ctx.font = 'bold 60px sans-serif';
-            ctx.fillText(data.mainValue, 540, cardY + 185);
+            ctx.font = 'bold 70px sans-serif';
+            // O mainValue (Título da Interpretação) fica centralizado no card
+            ctx.fillText(data.mainValue, 540, cardY + 135);
 
-            // 5. Bloco de Conteúdo (Summary)
+            // 5. Bloco de Conteúdo (Summary) - Começa mais cedo
             ctx.fillStyle = '#E2E8F0';
             ctx.font = 'italic 46px sans-serif';
             const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
@@ -95,6 +105,11 @@ export const generateStoryCard = async (data: {
                 let currentY = y;
                 for (let n = 0; n < words.length; n++) {
                     const testLine = line + words[n] + ' ';
+                    // Se for ultrapassar o limite inferior do card (badge), para de escrever.
+                    if (currentY > 1450) {
+                        ctx.fillText(line + '...', x, currentY);
+                        return;
+                    }
                     if (ctx.measureText(testLine).width > maxWidth && n > 0) {
                         ctx.fillText(line, x, currentY);
                         line = words[n] + ' ';
@@ -106,7 +121,7 @@ export const generateStoryCard = async (data: {
                 ctx.fillText(line, x, currentY);
             };
 
-            wrapText(`“${data.summary}”`, 540, 850, 840, 70);
+            wrapText(`“${data.summary}”`, 540, 620, 840, 70);
 
             // 5b. Badge de "Escassez" (Curiosidade)
             if (data.badgeText) {
@@ -132,13 +147,17 @@ export const generateStoryCard = async (data: {
             }
 
             // 6. Rodapé Action
-            ctx.fillStyle = '#6366F1';
+            ctx.fillStyle = data.theme === 'sun' ? '#F6E05E' : '#6366F1';
             ctx.font = 'bold 44px sans-serif';
-            ctx.fillText(data.footerText.toUpperCase(), 540, 1720);
+            ctx.fillText(data.footerText.toUpperCase(), 540, 1680);
+
+            ctx.fillStyle = '#94A3B8';
+            ctx.font = '32px sans-serif';
+            ctx.fillText('www.dreamtells.com', 540, 1750);
 
             ctx.fillStyle = '#475569';
-            ctx.font = '32px sans-serif';
-            ctx.fillText(data.ctaText, 540, 1780);
+            ctx.font = '28px sans-serif';
+            ctx.fillText(data.ctaText, 540, 1810);
 
             canvas.toBlob((blob) => {
                 resolve(blob);

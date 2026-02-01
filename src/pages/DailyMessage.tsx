@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { aiService } from '../services/aiService';
-import { Sun, Loader, Share2, Copy, Send, X } from 'lucide-react';
+import { Sun, Loader, Share2, Copy, Send, X, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLocalDateString } from '../utils/dateUtils';
+import { generateStoryCard } from '../services/shareService';
 
 const DailyMessage: React.FC = () => {
     const { dreams, t, dailyMessage, setDailyMessage, user } = useApp();
@@ -12,6 +13,7 @@ const DailyMessage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showShareMenu, setShowShareMenu] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
     // Unificamos o formato de data para YYYY-MM-DD (compatível com AppContext)
     const today = getLocalDateString();
@@ -60,6 +62,45 @@ const DailyMessage: React.FC = () => {
         if (!dailyMessage) return '';
         const userName = user?.name || 'Explorador(a)';
         return `✨ *DreamTells* ✨\n👤 Inspirado(a): ${userName}\n\n☀️ *${t('daily_message_title').toUpperCase()}*\n\n"${dailyMessage.title}"\n\n☀️ *${t('daily_msg_share_content_msg')}:*\n${dailyMessage.message}\n\n💡 *${t('daily_msg_share_content_practice')}:*\n${dailyMessage.practice}\n\n---\n🌈 *O que o Oráculo tem para você hoje?*`;
+    };
+
+    const handleShareImage = async () => {
+        if (!dailyMessage) return;
+        setIsGeneratingImage(true);
+        setShowShareMenu(false);
+
+        try {
+            const blob = await generateStoryCard({
+                title: t('daily_message_title'),
+                subtitle: dailyMessage.archetype || t('daily_msg_default_title'),
+                mainValue: dailyMessage.title || 'Sabedoria do Dia',
+                summary: dailyMessage.message,
+                footerText: 'Semente de sabedoria diária',
+                ctaText: 'DreamTells App',
+                badgeText: 'Inspirado em seus sonhos',
+                theme: 'sun'
+            });
+
+            if (blob) {
+                const file = new File([blob], 'daily-message.png', { type: 'image/png' });
+                const title = t('daily_msg_share_title');
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: title,
+                        text: 'Minha mensagem do dia no DreamTells ✨'
+                    });
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                }
+            }
+        } catch (err) {
+            console.error('[DailyMessage] Error generating image card:', err);
+        } finally {
+            setIsGeneratingImage(false);
+        }
     };
 
     const handleShareNative = async () => {
@@ -315,6 +356,31 @@ const DailyMessage: React.FC = () => {
                                             >
                                                 <Send size={18} color="#F6E05E" />
                                                 Enviar para...
+                                            </button>
+                                            <button
+                                                onClick={handleShareImage}
+                                                disabled={isGeneratingImage}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 12,
+                                                    padding: '12px 16px',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: isGeneratingImage ? '#4B5563' : '#F1F5F9',
+                                                    fontSize: '0.95rem',
+                                                    fontWeight: 600,
+                                                    cursor: isGeneratingImage ? 'default' : 'pointer',
+                                                    borderRadius: 12,
+                                                    textAlign: 'left'
+                                                }}
+                                            >
+                                                {isGeneratingImage ? (
+                                                    <Loader size={18} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                                                ) : (
+                                                    <ImageIcon size={18} color="#60A5FA" />
+                                                )}
+                                                {isGeneratingImage ? t('stats_share_image_loading') : t('stats_share_image_button')}
                                             </button>
                                             <button
                                                 onClick={handleCopy}
