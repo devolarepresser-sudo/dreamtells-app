@@ -71,12 +71,6 @@ const Login: React.FC = () => {
         }
     };
 
-    // Continua existindo, mas só preenche quando você clicar
-    const fillDevCredentials = () => {
-        setEmail('elepresser@gmail.com');
-        setPassword('Desenpresser123');
-        setName('Presser Dev');
-    };
 
     const handleForgotPassword = async () => {
         if (!email) {
