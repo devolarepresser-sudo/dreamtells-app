@@ -56,7 +56,8 @@ const Profile: React.FC = () => {
         <Layout
             title={t('profile_title')}
             showBack
-            icon={<User size={18} color="#F9FAFB" />}
+            icon={<User size={18} className="icon-white" />}
+            iconClass="menuIconTile-profile"
         >
             <AnimatePresence>
                 {showPaywall && <Paywall onClose={() => setShowPaywall(false)} />}

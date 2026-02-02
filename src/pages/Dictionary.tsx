@@ -2,7 +2,7 @@ import React from 'react';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
-import { GraduationCap, Book, User, Shield, Mask, Users, Zap, Compass, ChevronRight } from 'lucide-react';
+import { GraduationCap, Book, User, Shield, Users, Zap, Compass } from 'lucide-react';
 
 const DictionaryCard = ({
     icon: Icon,
@@ -120,9 +120,10 @@ const Dictionary: React.FC = () => {
 
     return (
         <Layout
-            title={t('dict_title') || "Dicionário da Alma"}
+            title={t('menu_dictionary')}
             showBack
-            icon={<GraduationCap size={20} color="#F9FAFB" />}
+            icon={<GraduationCap size={18} className="icon-white" />}
+            iconClass="menuIconTile-dictionary"
         >
             <div style={{ maxWidth: 600, margin: '0 auto', padding: '10px 4px 80px' }}>
                 <motion.div

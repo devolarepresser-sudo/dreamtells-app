@@ -91,7 +91,10 @@ const DeepDreamAnalysis: React.FC = () => {
 
     if (!dream || isLoadingQuestions) {
         return (
-            <Layout title="Carregando..." icon={<Sparkles size={18} />}>
+            <Layout
+                title="Carregando..."
+                icon={<Sparkles size={18} color="#8B5CF6" />}
+            >
                 <div style={{
                     minHeight: '100vh',
                     display: 'flex',
@@ -160,7 +163,7 @@ const DeepDreamAnalysis: React.FC = () => {
     return (
         <Layout
             title="Aprofundamento"
-            icon={<Sparkles size={18} color="#F9FAFB" />}
+            icon={<Sparkles size={18} color="#8B5CF6" />}
         >
             <motion.div
                 initial={{ opacity: 0 }}

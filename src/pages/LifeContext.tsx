@@ -61,7 +61,11 @@ const LifeContext: React.FC = () => {
     };
 
     return (
-        <Layout title={t('life_context_title')} showBack>
+        <Layout
+            title={t('life_context_title')}
+            showBack
+            icon={<Heart size={18} color="#F43F5E" />}
+        >
             <div
                 style={{
                     flex: 1,

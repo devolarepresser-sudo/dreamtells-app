@@ -16,9 +16,9 @@ const AboutTerms: React.FC = () => {
     return (
         <Layout
             title={t('settings_about')}
-            showBack={true}
-            showMenu={true}
-            icon={<Info size={18} color="#F9FAFB" />}
+            showBack
+            icon={<Info size={18} className="icon-white" />}
+            iconClass="menuIconTile-about"
         >
             <div style={{ flex: 1 }}>
                 {/* NAV DAS ABAS – contraste melhorado */}

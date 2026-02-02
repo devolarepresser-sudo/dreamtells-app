@@ -16,6 +16,8 @@ import {
     Sun,
     Compass,
     GraduationCap,
+    Library,
+    LayoutGrid
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -55,8 +57,8 @@ const Menu = () => {
         { icon: Book, label: t("menu_symbols"), path: "/symbols", tileClass: "menuIconTile-symbols", isPremiumTile: true },
         { icon: Compass, label: t("map_title"), path: "/unconscious-map", tileClass: "menuIconTile-map", isPremiumTile: true },
 
-        // Dictionary
         { icon: GraduationCap, label: t("menu_dictionary") || "Dicionário da Alma", path: "/dictionary", tileClass: "menuIconTile-dictionary" },
+        { icon: Library, label: t("menu_knowledge") || "Guia de Uso", path: "/guia", tileClass: "menuIconTile-knowledge" },
 
         // Premium page (always visible)
         { icon: Crown, label: t("menu_premium"), path: "/premium", tileClass: "menuIconTile-premium", isPremiumTile: true },
@@ -78,7 +80,7 @@ const Menu = () => {
             title={t("menu_title")}
             showBack={true}
             showMenu={false}
-            icon={<Sparkles size={18} color="#F9FAFB" />}
+            icon={<LayoutGrid size={18} className="icon-white" />}
         >
             {/* CSS local pra garantir contraste e cores sem depender do resto */}
             <style>
@@ -110,58 +112,6 @@ const Menu = () => {
             color: #CBD5E0;
             opacity: 0.9;
             stroke-width: 2;
-          }
-
-          /* Tiles com identidade própria */
-          .menuIconTile-home{
-            background: linear-gradient(135deg, #22C55E, #86EFAC);
-          }
-
-          .menuIconTile-audio{
-            background: linear-gradient(135deg, #06B6D4, #67E8F9);
-          }
-
-          .menuIconTile-interpretation{
-            background: linear-gradient(135deg, #8B5CF6, #C4B5FD);
-          }
-
-          .menuIconTile-daily{
-            background: linear-gradient(135deg, #F6E05E, #F6AD55);
-            box-shadow: 0 4px 12px rgba(246, 224, 94, 0.4);
-          }
-
-          .menuIconTile-write{
-            background: linear-gradient(135deg, #F97316, #FDBA74);
-          }
-
-          .menuIconTile-insights{
-            background: linear-gradient(135deg, #3B82F6, #60A5FA);
-          }
-
-          .menuIconTile-symbols{
-            background: linear-gradient(135deg, #7C3AED, #A78BFA);
-          }
-
-          .menuIconTile-map{
-            background: linear-gradient(135deg, #A855F7, #D8B4FE);
-          }
-
-          .menuIconTile-premium{
-            background: linear-gradient(135deg, #FACC15, #F59E0B);
-            box-shadow: 0 6px 18px rgba(250, 204, 21, 0.55);
-          }
-
-          .menuIconTile-profile{
-            background: linear-gradient(135deg, #64748B, #94A3B8);
-          }
-
-          .menuIconTile-about{
-            background: linear-gradient(135deg, #0EA5E9, #7DD3FC);
-          }
-          
-          .menuIconTile-dictionary{
-            background: linear-gradient(135deg, #4338CA, #6366F1);
-            box-shadow: 0 4px 12px rgba(67, 56, 202, 0.3);
           }
         `}
             </style >

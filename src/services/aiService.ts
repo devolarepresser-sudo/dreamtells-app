@@ -488,7 +488,7 @@ const generateDeepQuestionsApi = async (dreamText: string, language: string): Pr
 // ======================================================
 // 🛑 HELPER: Limite Diário (3 sonhos/leitura)
 // ======================================================
-const DAILY_LIMIT = 3;
+const DAILY_LIMIT = 10;
 
 const getDailyUsageKey = (userId: string) => {
     const today = getLocalDateString();

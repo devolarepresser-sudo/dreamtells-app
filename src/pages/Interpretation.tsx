@@ -391,8 +391,10 @@ const Interpretation: React.FC = () => {
 
     return (
         <Layout
-            title={t('interp_page_title')}
-            icon={<Sparkles size={18} color="#F9FAFB" />}
+            title={t('menu_interpretation')}
+            showBack
+            icon={<Sparkles size={18} className="icon-white" />}
+            iconClass="menuIconTile-interpretation"
         >
             <div
                 style={{

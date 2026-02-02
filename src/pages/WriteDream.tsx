@@ -59,9 +59,10 @@ const WriteDream: React.FC = () => {
     return (
         <Layout
             title={t('action_write')}            // muda conforme idioma (pt/es/en)
-            showBack={true}                      // botão voltar
+            showBack
             showMenu={true}                      // botão menu
-            icon={<PenTool size={18} color="#F9FAFB" />} // mesmo ícone do menu
+            icon={<PenTool size={18} className="icon-white" />}
+            iconClass="menuIconTile-audio"
         >
             <div
                 style={{

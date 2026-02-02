@@ -461,15 +461,60 @@ h3 {
 }
 
 .headerIconTile {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.45);
 }
+
+/* Identidade Visual - Gradientes dos Tiles (Sincronizado com Menu) */
+.menuIconTile-home {
+  background: linear-gradient(135deg, #22C55E, #86EFAC);
+}
+.menuIconTile-audio {
+  background: linear-gradient(135deg, #06B6D4, #67E8F9);
+}
+.menuIconTile-interpretation {
+  background: linear-gradient(135deg, #8B5CF6, #C4B5FD);
+}
+.menuIconTile-daily {
+  background: linear-gradient(135deg, #F6E05E, #F6AD55);
+}
+.menuIconTile-write {
+  background: linear-gradient(135deg, #F97316, #FDBA74);
+}
+.menuIconTile-insights {
+  background: linear-gradient(135deg, #3B82F6, #60A5FA);
+}
+.menuIconTile-symbols {
+  background: linear-gradient(135deg, #7C3AED, #A78BFA);
+}
+.menuIconTile-map {
+  background: linear-gradient(135deg, #A855F7, #D8B4FE);
+}
+.menuIconTile-premium {
+  background: linear-gradient(135deg, #FACC15, #F59E0B);
+}
+.menuIconTile-profile {
+  background: linear-gradient(135deg, #64748B, #94A3B8);
+}
+.menuIconTile-about {
+  background: linear-gradient(135deg, #0EA5E9, #7DD3FC);
+}
+.menuIconTile-dictionary {
+  background: linear-gradient(135deg, #4338CA, #6366F1);
+}
+.menuIconTile-knowledge {
+  background: linear-gradient(135deg, #6366F1, #818CF8);
+}
+
+/* Variantes de cor do ícone */
+.icon-white { color: #FFFFFF !important; }
+.icon-dark { color: #1F2937 !important; }
+
 
 .headerIconTile-inner {
   display: flex;

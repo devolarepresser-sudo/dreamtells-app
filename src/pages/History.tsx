@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useApp } from '../context/AppContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Calendar, ChevronRight, Trash2, Heart, Search, BookOpen } from 'lucide-react';
 import { DreamEntry } from '../types';
 
@@ -94,8 +94,10 @@ const History: React.FC = () => {
 
     return (
         <Layout
-            title={t('history_title')}
-            icon={<BookOpen size={18} color="#F9FAFB" />}
+            title={t('action_history')}
+            showBack
+            icon={<BookOpen size={18} className="icon-white" />}
+            iconClass="menuIconTile-write"
         >
             <div style={{ flex: 1 }}>
                 {/* TOPO: busca + filtro favoritos */}

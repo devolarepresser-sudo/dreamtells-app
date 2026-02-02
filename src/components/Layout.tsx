@@ -5,11 +5,12 @@ import { Menu as MenuIcon, ChevronLeft } from "lucide-react";
 interface LayoutProps {
     children: ReactNode;
     title?: string | ReactNode;
-    showBack?: boolean; // mostra botão voltar à esquerda
-    showMenu?: boolean; // mostra botão menu à direita
-    icon?: ReactNode; // ícone na frente do título
-    multiline?: boolean; // permitir múltiplas linhas no título
-    className?: string; // ✅ permite className (corrige o erro do Menu.tsx)
+    showBack?: boolean;
+    showMenu?: boolean;
+    icon?: ReactNode;
+    iconClass?: string; // Classe para o gradiente (ex: menuIconTile-write)
+    multiline?: boolean;
+    className?: string;
 }
 
 const Layout = ({
@@ -18,6 +19,7 @@ const Layout = ({
     showBack = false,
     showMenu = true,
     icon,
+    iconClass = "",
     multiline = false,
     className,
 }: LayoutProps) => {
@@ -27,7 +29,10 @@ const Layout = ({
     const handleMenu = () => navigate("/menu");
 
     return (
-        <div className={`container globalBackgroundPremium ${className ?? ""}`}>
+        <div
+            className={`container globalBackgroundPremium ${className ?? ""}`}
+            style={{ overflowX: 'hidden', position: 'relative' }}
+        >
             {/* HEADER PREMIUM FIXO */}
             <header
                 className="headerPremium"
@@ -37,20 +42,19 @@ const Layout = ({
                     maxWidth: 480,
                     margin: "0 auto",
                     padding: multiline ? "0 12px 14px" : "16px 12px 14px",
-                    // ✅ Suporte a Safe Area (Notch/Status Bar)
                     paddingTop: "max(16px, env(safe-area-inset-top))",
                     background: "transparent",
                     border: "none",
                     boxShadow: "none",
                     backdropFilter: "none",
-                    height: "auto", // Deixa auto para crescer com o padding extra
+                    height: "auto",
                 }}
             >
                 <div
                     className="headerPremium-inner"
                     style={{
                         width: "100%",
-                        borderRadius: 18, // ✅ Sempre redondo agora, pedido do usuário
+                        borderRadius: 18,
                         padding: multiline ? "20px 20px 24px" : "26px 20px",
                         background:
                             "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(37,99,235,0.98))",
@@ -62,7 +66,7 @@ const Layout = ({
                         gap: 12,
                     }}
                 >
-                    {/* ESQUERDA – VOLTAR (OPCIONAL) */}
+                    {/* ESQUERDA – VOLTAR */}
                     <div
                         style={{
                             width: 40,
@@ -97,7 +101,7 @@ const Layout = ({
                     <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
                         <div className="headerTitlePremium">
                             {icon && (
-                                <div className="headerIconTile">
+                                <div className={`headerIconTile ${iconClass}`}>
                                     <div className="headerIconTile-inner">{icon}</div>
                                 </div>
                             )}

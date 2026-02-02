@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { motion } from 'framer-motion';
-import { BookOpen, Crown, Lock, Home as HomeIcon, Sparkles, Trophy, Zap, Compass, ChevronRight } from 'lucide-react';
+import { BookOpen, Crown, Lock, Home as HomeIcon, Sparkles, Trophy, Zap, Compass, ChevronRight, Mic, Library } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 import { FREE_DEV_MODE } from '../config/featureFlags';
@@ -91,7 +91,10 @@ const Home: React.FC = () => {
     return (
         <Layout
             title="DreamTells"
-            icon={<HomeIcon size={18} color="#F9FAFB" />}
+            showBack={false}
+            showMenu={true}
+            icon={<HomeIcon size={18} className="icon-white" />}
+            iconClass="menuIconTile-home"
         >
             <motion.div
                 initial="hidden"
@@ -253,7 +256,42 @@ const Home: React.FC = () => {
                         </div>
                     </motion.div>
 
-                    {/* MAPA DO INCONSCIENTE (Novo) */}
+                    {/* AÇÕES PRINCIPAIS - AGORA O GUIA É O PRIMEIRO DE TODOS */}
+                    <motion.div
+                        variants={itemVariants}
+                        onClick={() => navigate('/guia')}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                            marginBottom: 24,
+                            padding: '16px 20px',
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            borderRadius: 20,
+                            border: '1px solid rgba(99, 102, 241, 0.4)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <div style={{ flex: 1, paddingRight: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                <div className="headerIconTile menuIconTile-knowledge" style={{ width: 32, height: 32 }}>
+                                    <Library size={16} className="icon-white" />
+                                </div>
+                                <h4 style={{ color: '#F9FAFB', fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                                    {t('menu_knowledge')}
+                                </h4>
+                            </div>
+                            <p style={{ color: '#818CF8', fontSize: '0.85rem', margin: '4px 0 0 42px', lineHeight: 1.4 }}>
+                                Explore o guia completo para navegar no seu inconsciente.
+                            </p>
+                        </div>
+                        <ChevronRight size={20} color="#818CF8" />
+                    </motion.div>
+
+                    {/* MAPA DO INCONSCIENTE */}
                     <motion.div
                         variants={itemVariants}
                         onClick={() => navigate('/unconscious-map')}
@@ -262,10 +300,10 @@ const Home: React.FC = () => {
                         style={{
                             marginBottom: 24,
                             padding: '16px 20px',
-                            background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.15))',
+                            background: 'rgba(168, 85, 247, 0.1)',
                             borderRadius: 20,
-                            border: '1px solid rgba(168,85,247,0.3)',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                            border: '1px solid rgba(168, 85, 247, 0.4)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                             display: 'flex',
                             alignItems: 'center',
                             cursor: 'pointer',
@@ -273,148 +311,140 @@ const Home: React.FC = () => {
                         }}
                     >
                         <div style={{ flex: 1, paddingRight: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                <Compass size={16} color="#A855F7" />
-                                <h4 style={{ color: '#E9D5FF', fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                <div className="headerIconTile menuIconTile-map" style={{ width: 32, height: 32 }}>
+                                    <Compass size={16} className="icon-white" />
+                                </div>
+                                <h4 style={{ color: '#F9FAFB', fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
                                     {t('map_card_home_title')}
                                 </h4>
                             </div>
-                            <p style={{ color: '#D8B4FE', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+                            <p style={{ color: '#D8B4FE', fontSize: '0.8rem', margin: '4px 0 0 42px', lineHeight: 1.4 }}>
                                 {t('map_card_home_desc')}
                             </p>
                         </div>
-                        <div style={{
-                            width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,85,247,0.2)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <ChevronRight size={18} color="#A855F7" />
-                        </div>
+                        <ChevronRight size={18} color="#A855F7" />
                     </motion.div>
 
-                    {/* BADGE PLANO */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
+
+                        {/* Interpretar Agora (Unificado com Gravação) */}
+                        <motion.div
+                            variants={itemVariants}
+                            onClick={() => navigate('/record')}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                                padding: '16px 20px',
+                                background: 'rgba(6, 182, 212, 0.1)', // Mantive o Ciano que você gostou para gravação
+                                borderRadius: 20,
+                                border: '1px solid rgba(6, 182, 212, 0.4)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                justifyContent: 'space-between'
+                            }}
+                        >
+                            <div style={{ flex: 1, paddingRight: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                    <div className="headerIconTile menuIconTile-audio" style={{ width: 32, height: 32 }}>
+                                        <Mic size={16} className="icon-white" />
+                                    </div>
+                                    <h4 style={{ color: '#F9FAFB', fontSize: '1rem', fontWeight: 800, margin: 0 }}>
+                                        Interpretar Agora
+                                    </h4>
+                                </div>
+                                <p style={{ color: '#67E8F9', fontSize: '0.85rem', margin: '4px 0 0 42px', lineHeight: 1.4, opacity: 0.9 }}>
+                                    Narre seu sonho ou escreva para revelar os mistérios agora.
+                                </p>
+                            </div>
+                            <ChevronRight size={20} color="#06B6D4" />
+                        </motion.div>
+
+                        {/* Histórico de Sonhos (Minha Jornada) - AGORA COM MESMA COR */}
+                        <motion.div
+                            variants={itemVariants}
+                            onClick={() => navigate('/history')}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                                padding: '16px 20px',
+                                background: 'rgba(99, 102, 241, 0.1)', // Unificado com a cor do Guia/Premium
+                                borderRadius: 20,
+                                border: '1px solid rgba(99, 102, 241, 0.4)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                justifyContent: 'space-between'
+                            }}
+                        >
+                            <div style={{ flex: 1, paddingRight: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                                    <div className="headerIconTile menuIconTile-write" style={{ width: 32, height: 32 }}>
+                                        <BookOpen size={16} className="icon-white" />
+                                    </div>
+                                    <h4 style={{ color: '#F9FAFB', fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                                        {t('action_history')}
+                                    </h4>
+                                </div>
+                                <p style={{ color: '#818CF8', fontSize: '0.85rem', margin: '4px 0 0 42px', lineHeight: 1.4 }}>
+                                    Revise suas memórias e padrões emocionais passados.
+                                </p>
+                            </div>
+                            <ChevronRight size={20} color="#818CF8" />
+                        </motion.div>
+                    </div>
+
+                    {/* BADGE PLANO (Movido para o final) */}
                     <motion.div
                         variants={itemVariants}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             marginBottom: 26,
-                            padding: '10px 14px',
-                            borderRadius: 999,
+                            padding: '12px 20px',
+                            borderRadius: 20,
                             background: hasAccess
-                                ? 'rgba(246,211,118,0.12)'
-                                : 'rgba(148,163,184,0.12)',
+                                ? 'rgba(246,211,118,0.08)'
+                                : 'rgba(148,163,184,0.08)',
                             border: hasAccess
-                                ? '1px solid rgba(246,211,118,0.65)'
-                                : '1px solid rgba(148,163,184,0.55)',
-                            boxShadow: hasAccess
-                                ? '0 10px 26px rgba(246,211,118,0.35)'
-                                : '0 10px 26px rgba(15,23,42,0.55)',
+                                ? '1px solid rgba(246,211,118,0.3)'
+                                : '1px solid rgba(148,163,184,0.3)',
                         }}
                     >
                         <div
                             style={{
-                                width: 30,
-                                height: 30,
+                                width: 26,
+                                height: 26,
                                 borderRadius: '50%',
-                                display: 'flex', // Fixed: removed stray '.'
+                                display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 marginRight: 10,
                                 background: hasAccess
                                     ? 'linear-gradient(135deg,#F6D376,#F1C40F)'
                                     : 'linear-gradient(135deg,#A0AEC0,#64748B)',
-                                boxShadow: hasAccess
-                                    ? '0 8px 20px rgba(246,211,118,0.55)'
-                                    : '0 8px 20px rgba(15,23,42,0.65)',
                             }}
                         >
                             {hasAccess ? (
-                                <Crown size={16} color="#1F2933" />
+                                <Crown size={14} color="#1F2933" />
                             ) : (
-                                <Lock size={16} color="#0B1120" />
+                                <Lock size={14} color="#0B1120" />
                             )}
                         </div>
                         <span
                             style={{
-                                fontSize: '0.86rem',
+                                fontSize: '0.85rem',
                                 fontWeight: 600,
                                 color: hasAccess ? '#F6E1A4' : '#E2E8F0',
+                                opacity: 0.9
                             }}
                         >
                             {hasAccess ? t('premium_active') : t('premium_expired')}
                         </span>
-                    </motion.div>
-
-                    {/* AÇÕES PRINCIPAIS */}
-                    <motion.div
-                        variants={itemVariants}
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 14,
-                            marginBottom: 28,
-                        }}
-                    >
-                        {/* Interpretar */}
-                        <motion.button
-                            onClick={() => navigate('/record')}
-                            className="btn-primary"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                fontSize: '1.1rem',
-                                borderRadius: 20,
-                                padding: '16px 20px',
-                                background:
-                                    'linear-gradient(135deg,#5A3EF2,#46E4E1)',
-                                border: 'none',
-                                color: '#F9FAFB',
-                                fontWeight: 800,
-                                letterSpacing: '0.01em',
-                                boxShadow:
-                                    '0 12px 32px rgba(90,62,242,0.45)',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s ease',
-                                position: 'relative',
-                                overflow: 'hidden'
-                            }}
-                            whileTap={{ scale: 0.96 }}
-                            whileHover={{
-                                scale: 1.02,
-                                boxShadow: '0 16px 40px rgba(90,62,242,0.6)',
-                            }}
-                        >
-                            <Sparkles size={20} style={{ marginRight: 10 }} />
-                            {t('action_interpret')}
-                        </motion.button>
-
-                        {/* Histórico */}
-                        <motion.button
-                            onClick={() => navigate('/history')}
-                            className="btn-secondary"
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                borderRadius: 999,
-                                padding: '11px 16px',
-                                background: 'rgba(15,23,42,0.96)',
-                                border: '1px solid rgba(148,163,184,0.85)',
-                                color: '#E5E7EB',
-                                fontWeight: 600,
-                                boxShadow: '0 12px 30px rgba(15,23,42,0.9)',
-                                cursor: 'pointer',
-                            }}
-                            whileTap={{ scale: 0.98 }}
-                            whileHover={{
-                                scale: 1.01,
-                                background: 'rgba(30,41,59,1)',
-                            }}
-                        >
-                            <BookOpen size={18} style={{ marginRight: 10 }} />
-                            {t('action_history')}
-                        </motion.button>
                     </motion.div>
 
                     {/* Teaser premium */}

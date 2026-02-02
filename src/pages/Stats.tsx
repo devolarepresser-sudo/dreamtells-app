@@ -560,8 +560,12 @@ const Stats: React.FC = () => {
     const goToAction = () => actionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     return (
-        <Layout title="Diagnóstico Emocional" showBack icon={<Activity size={18} color="#F9FAFB" />}>
-            <div style={{ flex: 1, position: 'relative' }}>
+        <Layout
+            title={t('menu_dashboard')}
+            showBack
+            icon={<Activity size={18} className="icon-white" />}
+            iconClass="menuIconTile-insights"
+        >    <div style={{ flex: 1, position: 'relative' }}>
                 {/* Card de estado (heurístico) */}
                 <div
                     className="card"

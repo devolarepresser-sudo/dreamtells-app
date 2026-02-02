@@ -194,8 +194,12 @@ const UnconsciousMap: React.FC = () => {
     if (isLoading) return <div style={{ padding: 40, textAlign: 'center', color: '#FFF' }}>{t('map_v2_loading')}</div>;
 
     return (
-        <Layout title={t('map_v2_title')} showBack icon={<Compass size={20} />}>
-            <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 4px 60px' }}>
+        <Layout
+            title={t('map_title')}
+            showBack
+            icon={<Compass size={18} className="icon-white" />}
+            iconClass="menuIconTile-map"
+        >    <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 4px 60px' }}>
 
                 <p style={{
                     color: '#94A3B8',

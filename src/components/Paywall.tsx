@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Layout from './Layout';
 import { useApp } from '../context/AppContext';
-import { Sparkles, Brain, Mic, Shield, Crown, ChevronRight, Activity, Library, Compass } from 'lucide-react';
+import { Sparkles, Mic, Shield, Crown, ChevronRight, Activity, Library, Compass, Sun } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PaywallProps {
@@ -22,46 +22,53 @@ const Paywall: React.FC<PaywallProps> = () => {
 
     const features = [
         {
-            icon: <Activity size={24} color="#FFEDD5" />, // Vibrant light color
+            icon: <Activity size={24} color="#3B82F6" />,
             title: t('paywall_feature_emotional_diag_title'),
             desc: t('paywall_feature_emotional_diag_desc'),
-            color: "rgba(244, 63, 94, 0.3)", // More vibrant background
-            border: "rgba(244, 63, 94, 0.5)"
+            color: "rgba(59, 130, 246, 0.1)",
+            border: "rgba(59, 130, 246, 0.3)"
         },
         {
-            icon: <Brain size={24} color="#F3E8FF" />,
+            icon: <Compass size={24} color="#A855F7" />,
             title: t('paywall_feature_unconscious_dive_title'),
             desc: t('paywall_feature_unconscious_dive_desc'),
-            color: "rgba(168, 85, 247, 0.3)",
-            border: "rgba(168, 85, 247, 0.5)"
+            color: "rgba(168, 85, 247, 0.1)",
+            border: "rgba(168, 85, 247, 0.3)"
         },
         {
-            icon: <Compass size={24} color="#E0F2FE" />,
-            title: t('paywall_feature_soul_map_title'),
-            desc: t('paywall_feature_soul_map_desc'),
-            color: "rgba(59, 130, 246, 0.3)",
-            border: "rgba(59, 130, 246, 0.5)"
-        },
-        {
-            icon: <Sparkles size={24} color="#FEF3C7" />,
+            icon: <Sun size={24} color="#F6E05E" />,
             title: t('paywall_feature_daily_msg_title'),
             desc: t('paywall_feature_daily_msg_desc'),
-            color: "rgba(245, 158, 11, 0.3)",
-            border: "rgba(245, 158, 11, 0.5)"
+            color: "rgba(246, 224, 94, 0.1)",
+            border: "rgba(246, 224, 94, 0.3)"
         },
         {
-            icon: <Library size={24} color="#ECFDF5" />,
+            icon: <Library size={24} color="#818CF8" />,
             title: t('paywall_feature_symbols_lib_title'),
             desc: t('paywall_feature_symbols_lib_desc'),
-            color: "rgba(16, 185, 129, 0.3)",
-            border: "rgba(16, 185, 129, 0.5)"
+            color: "rgba(129, 140, 248, 0.1)",
+            border: "rgba(129, 140, 248, 0.3)"
         },
         {
-            icon: <Mic size={24} color="#CFFAFE" />,
+            icon: <Mic size={24} color="#06B6D4" />,
             title: t('paywall_feature_voice_title'),
             desc: t('paywall_feature_voice_desc'),
-            color: "rgba(6, 182, 212, 0.3)",
-            border: "rgba(6, 182, 212, 0.5)"
+            color: "rgba(6, 182, 212, 0.1)",
+            border: "rgba(6, 182, 212, 0.3)"
+        },
+        {
+            icon: <Sparkles size={24} color="#8B5CF6" />,
+            title: "Interpretações Ilimitadas",
+            desc: "Acesse o poder total da IA sem limites diários.",
+            color: "rgba(139, 92, 246, 0.1)",
+            border: "rgba(139, 92, 246, 0.3)"
+        },
+        {
+            icon: <Shield size={24} color="#94A3B8" />,
+            title: "Privacidade total",
+            desc: "Seus dados são criptografados.",
+            color: "rgba(148, 163, 184, 0.1)",
+            border: "rgba(148, 163, 184, 0.3)"
         }
     ];
 
@@ -69,7 +76,8 @@ const Paywall: React.FC<PaywallProps> = () => {
         <Layout
             title="Premium"
             showBack={true}
-            icon={<Crown size={18} color="#FBBF24" />}
+            icon={<Crown size={18} className="icon-dark" />}
+            iconClass="menuIconTile-premium"
         >
             <div
                 style={{
@@ -234,29 +242,6 @@ const Paywall: React.FC<PaywallProps> = () => {
                         ))}
                     </div>
 
-                    {/* SOCIAL PROOF / TRUST */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                        style={{
-                            width: '100%',
-                            marginBottom: 32,
-                            padding: '12px 16px',
-                            background: 'rgba(15, 23, 42, 0.6)',
-                            borderRadius: 12,
-                            border: '1px solid rgba(148, 163, 184, 0.15)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 10
-                        }}
-                    >
-                        <Shield size={16} color="#94A3B8" />
-                        <span style={{ color: '#94A3B8', fontSize: '0.85rem' }}>
-                            {t('paywall_privacy')}
-                        </span>
-                    </motion.div>
 
                     {/* CTA BUTTON */}
                     <div style={{
@@ -300,14 +285,6 @@ const Paywall: React.FC<PaywallProps> = () => {
                                 </>
                             )}
                         </motion.button>
-                        <p style={{
-                            textAlign: 'center',
-                            marginTop: 12,
-                            color: '#64748B',
-                            fontSize: '0.8rem'
-                        }}>
-                            {t('paywall_trial_text')}
-                        </p>
                     </div>
                 </div>
             </div>

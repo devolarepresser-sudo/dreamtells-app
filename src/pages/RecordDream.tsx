@@ -390,12 +390,10 @@ const RecordDream: React.FC = () => {
 
     return (
         <Layout
-            title={
-                <span dangerouslySetInnerHTML={{ __html: t('record_page_title') }} />
-            }
-            multiline
+            title={t('action_record')}
             showBack
-            icon={<Mic size={18} color="#F9FAFB" />}
+            icon={<Mic size={18} className="icon-white" />}
+            iconClass="menuIconTile-audio"
         >
             <div
                 style={{

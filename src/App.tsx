@@ -23,6 +23,7 @@ import HowItWorks from './pages/HowItWorks';
 import DeepDreamAnalysis from './pages/DeepDreamAnalysis';
 import UnconsciousMap from './pages/UnconsciousMap';
 import Dictionary from './pages/Dictionary';
+import KnowledgeBase from './pages/KnowledgeBase';
 
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -60,6 +61,7 @@ const App: React.FC = () => {
                         {/* <Route path="/life-context" element={<ProtectedRoute><LifeContext /></ProtectedRoute>} /> */}
                         <Route path="/daily-message" element={<ProtectedRoute><DailyMessage /></ProtectedRoute>} />
                         <Route path="/dictionary" element={<ProtectedRoute><Dictionary /></ProtectedRoute>} />
+                        <Route path="/guia" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
